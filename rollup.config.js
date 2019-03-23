@@ -7,11 +7,10 @@ export default {
         format: 'umd',
         name: 'functional-acoustics',
         globals: {
-            "mathjs": 'math',
-            "fast-sort": 'sort'
+            "mathjs": 'math'
         }
     },
-    external: ['mathjs', 'fast-sort'],
+    external: ['mathjs'],
     plugins: [resolve({
         extensions: ['.mjs', '.js', '.jsx', '.json'],
         customResolveOptions: {

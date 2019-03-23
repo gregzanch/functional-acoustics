@@ -1,11 +1,10 @@
 (function (global, factory) {
-    typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory(require('mathjs'), require('fast-sort')) :
-    typeof define === 'function' && define.amd ? define(['mathjs', 'fast-sort'], factory) :
-    (global = global || self, global['functional-acoustics'] = factory(global.math, global.sort));
-}(this, function (math, sort) { 'use strict';
+    typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory(require('mathjs')) :
+    typeof define === 'function' && define.amd ? define(['mathjs'], factory) :
+    (global = global || self, global['functional-acoustics'] = factory(global.math));
+}(this, function (math) { 'use strict';
 
     math = math && math.hasOwnProperty('default') ? math['default'] : math;
-    sort = sort && sort.hasOwnProperty('default') ? sort['default'] : sort;
 
     /* https://en.wikipedia.org/wiki/A-weighting#Function_realisation_of_some_common_weightings */
 
@@ -382,40 +381,6 @@
         }
     };
 
-    class Barrier{
-        constructor() {
-
-        }
-        setSource(x, y){
-            this.source = {
-                x: x,
-                y: y
-            };
-            return this;
-        }
-        setReciever(x, y){
-            this.reciever = {
-                x: x,
-                y: y
-            };
-            return this;
-        }
-        setBarrier(x, y){
-            this.barrier = {
-                x: x,
-                y: y
-            };
-            return this;
-        }
-        setSpeed(c){
-            this.speed = c;
-            return this;
-        }
-        getInsertionLoss(freq){
-            freq = typeof freq === "number" ? [freq] : freq;
-        }
-    }
-
     const Properties = {
 
         /**
@@ -480,14 +445,160 @@
         }
     };
 
-    class Measurement {
-        constructor(params) {
-            this.data = params.data || {};
-            
+    /*
+    sort.js was not written by me,
+    check out fast-sort at https://www.npmjs.com/package/fast-sort
+    */
+
+    const sorter = function (direction, a, b) {
+        if (a === b) return 0;
+        if (a < b) return -direction;
+        if (a == null) return 1;
+        if (b == null) return -1;
+
+        return direction;
+    };
+
+    /**
+     * stringSorter does not support nested property.
+     * For nested properties or value transformation (e.g toLowerCase) we should use functionSorter
+     * Based on benchmark testing using stringSorter is bit faster then using equivalent function sorter
+     * @example sort(users).asc('firstName')
+     */
+    const stringSorter = function (direction, sortBy, a, b) {
+        return sorter(direction, a[sortBy], b[sortBy]);
+    };
+
+    /**
+     * @example sort(users).asc(p => p.address.city)
+     */
+    const functionSorter = function (direction, sortBy, a, b) {
+        return sorter(direction, sortBy(a), sortBy(b));
+    };
+
+    /**
+     * Used when we have sorting by multyple properties and when current sorter is function
+     * @example sort(users).asc([p => p.address.city, p => p.firstName])
+     */
+    const multiPropFunctionSorter = function (sortBy, thenBy, depth, direction, a, b) {
+        return multiPropEqualityHandler(sortBy(a), sortBy(b), thenBy, depth, direction, a, b);
+    };
+
+    /**
+     * Used when we have sorting by multiple properties and when current sorter is string
+     * @example sort(users).asc(['firstName', 'lastName'])
+     */
+    const multiPropStringSorter = function (sortBy, thenBy, depth, direction, a, b) {
+        return multiPropEqualityHandler(a[sortBy], b[sortBy], thenBy, depth, direction, a, b);
+    };
+
+    /**
+     * Used with 'by' sorter when we have sorting in multiple direction
+     * @example sort(users).asc(['firstName', 'lastName'])
+     */
+    const multiPropObjectSorter = function (sortByObj, thenBy, depth, _direction, a, b) {
+        const sortBy = sortByObj.asc || sortByObj.desc;
+        const direction = sortByObj.asc ? 1 : -1;
+
+        if (!sortBy) {
+            throw Error(`sort: Invalid 'by' sorting configuration.
+      Expecting object with 'asc' or 'desc' key`);
         }
+
+        const multiSorter = getMultiPropertySorter(sortBy);
+        return multiSorter(sortBy, thenBy, depth, direction, a, b);
+    };
+
+    // >>> HELPERS <<<
+
+    /**
+     * Return multiProperty sort handler based on sortBy value
+     */
+    const getMultiPropertySorter = function (sortBy) {
+        const type = typeof sortBy;
+        if (type === 'string') {
+            return multiPropStringSorter;
+        } else if (type === 'function') {
+            return multiPropFunctionSorter;
+        }
+
+        return multiPropObjectSorter;
+    };
+
+    const multiPropEqualityHandler = function (valA, valB, thenBy, depth, direction, a, b) {
+        if (valA === valB || (valA == null && valB == null)) {
+            if (thenBy.length > depth) {
+                const multiSorter = getMultiPropertySorter(thenBy[depth]);
+                return multiSorter(thenBy[depth], thenBy, depth + 1, direction, a, b);
+            }
+            return 0;
+        }
+
+        return sorter(direction, valA, valB);
+    };
+
+    /**
+     * Pick sorter based on provided sortBy value
+     */
+    const sort = function (direction, ctx, sortBy) {
+        if (!Array.isArray(ctx)) return ctx;
+
+        // Unwrap sortBy if array with only 1 value
+        if (Array.isArray(sortBy) && sortBy.length < 2) {
+            [sortBy] = sortBy;
+        }
+
+        let _sorter;
+
+        if (!sortBy) {
+            _sorter = sorter.bind(undefined, direction);
+        } else if (typeof sortBy === 'string') {
+            _sorter = stringSorter.bind(undefined, direction, sortBy);
+        } else if (typeof sortBy === 'function') {
+            _sorter = functionSorter.bind(undefined, direction, sortBy);
+        } else {
+            _sorter = getMultiPropertySorter(sortBy[0])
+                .bind(undefined, sortBy.shift(), sortBy, 0, direction);
+        }
+
+        return ctx.sort(_sorter);
+    };
+
+    function sort$1 (ctx) {
+        return {
+            asc: (sortBy) => sort(1, ctx, sortBy),
+            desc: (sortBy) => sort(-1, ctx, sortBy),
+            by: (sortBy) => {
+                if (!Array.isArray(ctx)) return ctx;
+
+                if (!Array.isArray(sortBy)) {
+                    throw Error(`sort: Invalid usage of 'by' sorter. Array syntax is required.
+          Did you mean to use 'asc' or 'desc' sorter instead?`);
+                }
+
+                // Unwrap sort by to faster path
+                if (sortBy.length === 1) {
+                    const direction = sortBy[0].asc ? 1 : -1;
+                    const sortOnProp = sortBy[0].asc || sortBy[0].desc;
+                    if (!sortOnProp) {
+                        throw Error(`sort: Invalid 'by' sorting configuration.
+            Expecting object with 'asc' or 'desc' key`);
+                    }
+                    return sort(direction, ctx, sortOnProp);
+                }
+
+                const _sorter = multiPropObjectSorter.bind(undefined, sortBy.shift(), sortBy, 0, undefined);
+                return ctx.sort(_sorter);
+            }
+        };
     }
 
     const Modes = {
+        
+        /**
+         * @function calcModes
+         * @deprecated use Acoustics.RoomModes instead
+         */
         calcModes: (params) => {
             let units = params.units || "ft";
             let c = params.c || Properties.Air.SpeedOfSound({
@@ -557,8 +668,8 @@
             });
 
 
-            freq = sort(freq).asc(u => u.frequency);
-            bonello = sort(bonello).asc(u => u.band);
+            freq = sort$1(freq).asc(u => u.frequency);
+            bonello = sort$1(bonello).asc(u => u.band);
 
             let stdDifference = math.std(derivative(freq.map(x => x.frequency)), stdSchema);
 
@@ -606,16 +717,141 @@
         }
     };
 
+    /**
+     * @function RoomModes
+     * @description Calculates the modal frequencies of a room of specified dimmensions
+     * @param {Object} params - Solver parameters
+     * @param {Number} params.length - Room length (default units of feet)
+     * @param {Number} params.width - Room width (default units of feet)
+     * @param {Number} params.height - Room height (default units of feet)
+     * @param {String} [params.units] - Can be either "english" for feet, or "si" for meters. Defaults to "english"
+     * @param {Number} [params.c] - Speed of sound in "ft/s" for "english", or "m/s" for "si"
+     * @param {Number[]} [params.frequencyRange] - Frequency limits as an array (i.e. [minFrequency, maxFrequency]). Defaults to [16, 500];
+     * @param {String} [params.stdNormalization] - Normalization for standard deviation calculation. Defaults to 'biased' (see math.std in mathjs)
+     * @param {String} [params.overlapPenalty] - Penalty for overlapping modes (used to calculate score). Defaults to 'none'.
+     * @param {Number} [params.overlapWidth] - Used to calculate score (i.e. overlapping = nextFrequency < overlapWidth * currentFrequency). Defaults to 0.1;
+     */
+    const RoomModes = (params) => {
+        let units = params.units || "english";
+        let c = params.c || Properties.Air.SpeedOfSound({
+            temp: {
+                value: 70,
+                units: "F"
+            },
+            units: "ft/s"
+        });
+        
+        let length = params.length;
+        let width = params.width;
+        let height = params.height;
+        let freqlimits = params.frequencyRange || [16, 500];
+        let stdNormalization = params.stdNormalization || 'biased';
+        let overlapPenalty = params.overlapPenalty || 'none';
+        let overlapWidth = params.overlapWidth || 0.1;
+
+        let bands = Bands.ThirdOctave.withLimits;
+        let modeLimit = 20; 
+        let N = [];
+        for (let i = 0; i <= modeLimit; i++) {
+            for (let j = 0; j <= modeLimit; j++) {
+                for (let k = 0; k <= modeLimit; k++) {
+                    N.push([i, j, k]);
+                }
+            }
+        }
+        N = N.splice(1);
+        let freq = [];
+        const getBand = (f, limit = "Center") => {
+            let _band;
+            for (let b = 0; b < bands.length; b++) {
+                if (f >= bands[b].Lower && f < bands[b].Upper) {
+                    _band = bands[b][limit];
+                }
+            }
+            return _band;
+        };
+        const ModeTypes = ["Oblique", "Tangential", "Axial", "Unknown"];
+        const derivative = (arr) => {
+            let d = [];
+            for (let i = 0; i < arr.length - 1; i++) {
+                d.push(arr[i + 1] - arr[i]);
+            }
+            return d;
+        };
+        N.forEach(n => {
+            let f = c / 2 * Math.sqrt(Math.pow(n[0] / length, 2) + Math.pow(n[1] / width, 2) + Math.pow(n[2] / height, 2));
+            if (f >= freqlimits[0] && f <= freqlimits[1]) {
+                let modeIndex = n.filter(x => x == 0).length;
+                freq.push({
+                    frequency: f,
+                    mode: n,
+                    modeType: ModeTypes[modeIndex],
+                    modeTypeNumber: modeIndex + 1,
+                    band: getBand(f)
+                });
+            }
+        });
+
+        let bonelloBands = [...new Set(freq.map(x => x.band))];
+
+        let bonello = bonelloBands.map(freq_band => {
+            return {
+                band: freq_band,
+                count: freq.filter(f => f.band == freq_band).length
+            }
+        });
+
+
+        freq = sort$1(freq).asc(u => u.frequency);
+        bonello = sort$1(bonello).asc(u => u.band);
+
+        let stdDifference = math.std(derivative(freq.map(x => x.frequency)), stdNormalization);
+
+        let overlapCount = 0;
+
+        for (let i = 1; i < freq.length - 1; i++) {
+            if (freq[i + 1].frequency - freq[i].frequency < overlapWidth * freq[i].frequency) {
+                overlapCount++;
+            }
+        }
+        let score;
+        switch (overlapPenalty) {
+            case "+":
+                score = stdDifference + math.log10(overlapCount + 1);
+                break;
+            case "*":
+                score = stdDifference * math.log10(overlapCount + 1);
+                break;
+            case "none":
+                score = stdDifference;
+                break;
+            default:
+                score = stdDifference;
+                break;
+        }
+
+        return {
+            length: Number(length.toFixed(2)),
+            width: Number(width.toFixed(2)),
+            height: Number(height.toFixed(2)),
+            modes: freq,
+            bonello: bonello,
+            score: score,
+            overlapCount: overlapCount
+        };
+    };
+
     const Acoustics = {
         Weight: Weight,
         Conversion: Conversion,
         Bands: Bands,
         dBAdd: dBAdd,
         dBsum: dBsum,
-        Barrier: Barrier,
+        // Barrier: Barrier,
         Properties: Properties,
-        Measurement: Measurement,
-        Modes: Modes
+        // Measurement: Measurement,
+        Modes: Modes,
+        RoomModes: RoomModes
     };
 
     return Acoustics;

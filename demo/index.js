@@ -22,3 +22,11 @@ let dBsum3d = AC.dBsum([
 ])
 
 console.log(dBsum1d, dBsum2d, dBsum3d);
+
+let modes = AC.RoomModes({
+    length: 19,
+    width: 14,
+    height: 10,
+});
+
+console.log(modes);

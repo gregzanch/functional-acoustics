@@ -3,10 +3,11 @@ import Conversion from './conversion'
 import Bands from './bands/bands'
 import dBAdd from './functions/dBAdd'
 import dBsum from './functions/dBsum'
-import Barrier from './barrier'
+// import Barrier from './barrier'
 import Properties from './properties'
-import Measurement from './measurement'
+// import Measurement from './measurement'
 import Modes from './modes'
+import RoomModes from './modal/room-modes'
 
 const Acoustics = {
     Weight: Weight,
@@ -14,10 +15,11 @@ const Acoustics = {
     Bands: Bands,
     dBAdd: dBAdd,
     dBsum: dBsum,
-    Barrier: Barrier,
+    // Barrier: Barrier,
     Properties: Properties,
-    Measurement: Measurement,
-    Modes: Modes
+    // Measurement: Measurement,
+    Modes: Modes,
+    RoomModes: RoomModes
 };
 
 export default Acoustics;
