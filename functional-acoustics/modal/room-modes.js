@@ -1,6 +1,6 @@
 import Bands from '../bands/bands';
 import Properties from '../properties';
-import math from 'mathjs';
+import std from '../util/std';
 import sort from '../util/sort';
 
 /**
@@ -13,8 +13,8 @@ import sort from '../util/sort';
  * @param {String} [params.units] - Can be either "english" for feet, or "si" for meters. Defaults to "english"
  * @param {Number} [params.c] - Speed of sound in "ft/s" for "english", or "m/s" for "si"
  * @param {Number[]} [params.frequencyRange] - Frequency limits as an array (i.e. [minFrequency, maxFrequency]). Defaults to [16, 500];
- * @param {String} [params.stdNormalization] - Normalization for standard deviation calculation. Defaults to 'biased' (see math.std in mathjs)
- * @param {String} [params.overlapPenalty] - Penalty for overlapping modes (used to calculate score). Defaults to 'none'.
+ * @param {String} [params.stdNormalization] - Normalization for standard deviation calculation. Can be 'unbiased' (default), 'uncorrected', or 'biased';
+ * @param {String} [params.overlapPenalty] - Penalty for overlapping modes (used to calculate score). Can be '*' (default), '+', or 'none'.
  * @param {Number} [params.overlapWidth] - Used to calculate score (i.e. overlapping = nextFrequency < overlapWidth * currentFrequency). Defaults to 0.1;
  */
 const RoomModes = (params) => {
@@ -31,8 +31,8 @@ const RoomModes = (params) => {
     let width = params.width;
     let height = params.height;
     let freqlimits = params.frequencyRange || [16, 500];
-    let stdNormalization = params.stdNormalization || 'biased';
-    let overlapPenalty = params.overlapPenalty || 'none';
+    let stdNormalization = params.stdNormalization || 'unbiased';
+    let overlapPenalty = params.overlapPenalty || '*';
     let overlapWidth = params.overlapWidth || 0.1;
 
     let bands = Bands.ThirdOctave.withLimits;
@@ -91,7 +91,7 @@ const RoomModes = (params) => {
     freq = sort(freq).asc(u => u.frequency);
     bonello = sort(bonello).asc(u => u.band);
 
-    let stdDifference = math.std(derivative(freq.map(x => x.frequency)), stdNormalization);
+    let stdDifference = std(derivative(freq.map(x => x.frequency)), stdNormalization);
 
     let overlapCount = 0;
 
@@ -103,10 +103,10 @@ const RoomModes = (params) => {
     let score;
     switch (overlapPenalty) {
         case "+":
-            score = stdDifference + math.log10(overlapCount + 1);
+            score = stdDifference + Math.log10(overlapCount + 1);
             break;
         case "*":
-            score = stdDifference * math.log10(overlapCount + 1);
+            score = stdDifference * Math.log10(overlapCount + 1);
             break;
         case "none":
             score = stdDifference;

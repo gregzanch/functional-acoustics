@@ -1,10 +1,8 @@
 (function (global, factory) {
-    typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory(require('mathjs')) :
-    typeof define === 'function' && define.amd ? define(['mathjs'], factory) :
-    (global = global || self, global.AC = factory(global.math));
-}(this, function (math) { 'use strict';
-
-    math = math && math.hasOwnProperty('default') ? math['default'] : math;
+    typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
+    typeof define === 'function' && define.amd ? define(factory) :
+    (global = global || self, global.AC = factory());
+}(this, function () { 'use strict';
 
     /* https://en.wikipedia.org/wiki/A-weighting#Function_realisation_of_some_common_weightings */
 
@@ -349,28 +347,32 @@
 
     /** 
      * Returns the dB sum of every array passed in, rounded to an optional precision. 
-     * @param  {number[]} dBs - An n-dimmensional array of numbers
-     * @param {number=} decimalPrecision - Number of decimals places to round the output to
-     * @returns {number|number[]} A number or an (n-1)-dimmensional array of numbers
+     * @param  {Number[]} dBs - An n-dimmensional array of numbers
+     * @param {Number} decimalPrecision - Number of decimals places to round the output to
+     * @returns {Number|Number[]} A number or an (n-1)-dimmensional array of numbers
      */
     const dBsum = (dBs, decimalPrecision = 1) => {
         let _sum_;
+        let precision = '1';
+        for (let i = 0; i < decimalPrecision; i++){
+            precision+="0";
+        }    precision = Number(precision);
         if (typeof dBs === "number") {
             throw "dBsum requires an array, not a single number";
         } else if (typeof dBs === "string") {
             throw "dBsum requires an array, not a single string";
         } else if (typeof dBs === "object") {
             if (typeof dBs[0] === "number") {
-                _sum_ = 10 * Math.log10(dBs.map(x => Math.pow(10, x / 10)).reduce((acc, a) => acc + a));
+                _sum_ = Math.round(10 * Math.log10(dBs.map(x => Math.pow(10, x / 10)).reduce((acc, a) => acc + a))*precision)/precision;
             } else if (typeof dBs[0] === "string") {
                 try {
-                    _sum_ = 10 * Math.log10(dBs.map(x => Math.pow(10, Number(x) / 10)).reduce((acc, a) => acc + a));
+                    _sum_ = Math.round(10 * Math.log10(dBs.map(x => Math.pow(10, Number(x) / 10)).reduce((acc, a) => acc + a)) * precision) / precision;
                 } catch (error) {
                     throw error
                 }
             } else if (typeof dBs[0] === "object") {
                 try {
-                    _sum_ = dBs.map(x => dBsum(x));
+                    _sum_ = dBs.map(x => dBsum(x,decimalPrecision));
                 } catch (error) {
                     throw error
                 }
@@ -443,6 +445,20 @@
                 return c;
             }
         }
+    };
+
+    const mean = x => x.reduce((p, c) => p + c, 0) / x.length;
+
+    const std = (x, normalization) => {
+        let norm = normalization || 'unbiased';
+        let m = mean(x);
+        let n = [];
+        n['unbiased'] = -1;
+        n['uncorrected'] = 0;
+        n['biased'] = 1;
+
+        let s = Math.sqrt(x.map(u => Math.pow(u - m, 2)).reduce((p, c) => p + c) / (x.length + n[norm]));
+        return s;
     };
 
     /*
@@ -593,130 +609,6 @@
         };
     }
 
-    const Modes = {
-        
-        /**
-         * @function calcModes
-         * @deprecated use Acoustics.RoomModes instead
-         */
-        calcModes: (params) => {
-            let units = params.units || "ft";
-            let c = params.c || Properties.Air.SpeedOfSound({
-                temp: {
-                    value: 70,
-                    units: "F"
-                },
-                units: "ft/s"
-            });
-            let bands = Bands.ThirdOctave.withLimits;
-            let length = params.dim[0] || 18;
-            let width = params.dim[1] || 13;
-            let height = params.dim[2] || 8;
-            let nmax = params.nmax || 10;
-            let freqlimits = params.freq || [16, 500];
-            let stdSchema = params.stdSchema || 'biased';
-            let overlap = params.overlap || 'no overlap';
-           
-            let N = [];
-            for (let i = 0; i <= nmax; i++) {
-                for (let j = 0; j <= nmax; j++) {
-                    for (let k = 0; k <= nmax; k++) {
-                        N.push([i, j, k]);
-                    }
-                }
-            }
-            N = N.splice(1);
-            let freq = [];
-            const getBand = (f,limit="Center") => {
-                let _band;
-                for (let b = 0; b < bands.length; b++) {
-                    if (f >= bands[b].Lower && f < bands[b].Upper) {
-                        _band = bands[b][limit];
-                    }
-                }
-                return _band;
-            };
-            const ModeTypes = ["Oblique", "Tangential", "Axial", "Unknown"];
-            const derivative = (arr) => {
-                let d = [];
-                for (let i = 0; i < arr.length - 1; i++) {
-                    d.push(arr[i + 1] - arr[i]);
-                }
-                return d;
-            };
-            N.forEach(n => {
-                let f = c / 2 * Math.sqrt(Math.pow(n[0] / length, 2) + Math.pow(n[1] / width, 2) + Math.pow(n[2] / height, 2));
-                if (f >= freqlimits[0] && f <= freqlimits[1]) {
-                    let modeIndex = n.filter(x => x == 0).length;
-                    freq.push({
-                        frequency: f,
-                        mode: n,
-                        modeType: ModeTypes[modeIndex],
-                        modeTypeNumber: modeIndex + 1,
-                        band: getBand(f)
-                    });
-                }
-            });
-
-            let bonelloBands = [...new Set(freq.map(x => x.band))];
-
-            let bonello = bonelloBands.map(freq_band => {
-                return {
-                    band: freq_band,
-                    count: freq.filter(f => f.band == freq_band).length
-                }
-            });
-
-
-            freq = sort$1(freq).asc(u => u.frequency);
-            bonello = sort$1(bonello).asc(u => u.band);
-
-            let stdDifference = math.std(derivative(freq.map(x => x.frequency)), stdSchema);
-
-            let overlapCount = 0;
-
-            for (let i = 1; i < freq.length - 1; i++) {
-                let hbw = .01 * freq[i].frequency;
-
-
-                if (freq[i + 1].frequency - freq[i].frequency < hbw) {
-                    overlapCount++;
-                }
-
-            }
-            let score;
-            switch (overlap) {
-                case "+overlap":
-                    score = stdDifference + math.log10(overlapCount + 1);
-                    break;
-                case "*overlap":
-                    score = stdDifference * math.log10(overlapCount + 1);
-                    break;
-                case "no overlap":
-                    score = stdDifference;
-                    break;
-                default:
-
-                    break;
-            }
-
-            return {
-                dim: [
-                    Number(length.toFixed(2)),
-                    Number(width.toFixed(2)),
-                    Number(height.toFixed(2))
-                ],
-                L: Number(length.toFixed(2)),
-                W: Number(width.toFixed(2)),
-                H: Number(height.toFixed(2)),
-                modes: freq,
-                bonello: bonello,
-                score: score,
-                overlapCount: overlapCount
-            };
-        }
-    };
-
     /**
      * @function RoomModes
      * @description Calculates the modal frequencies of a room of specified dimmensions
@@ -727,8 +619,8 @@
      * @param {String} [params.units] - Can be either "english" for feet, or "si" for meters. Defaults to "english"
      * @param {Number} [params.c] - Speed of sound in "ft/s" for "english", or "m/s" for "si"
      * @param {Number[]} [params.frequencyRange] - Frequency limits as an array (i.e. [minFrequency, maxFrequency]). Defaults to [16, 500];
-     * @param {String} [params.stdNormalization] - Normalization for standard deviation calculation. Defaults to 'biased' (see math.std in mathjs)
-     * @param {String} [params.overlapPenalty] - Penalty for overlapping modes (used to calculate score). Defaults to 'none'.
+     * @param {String} [params.stdNormalization] - Normalization for standard deviation calculation. Can be 'unbiased' (default), 'uncorrected', or 'biased';
+     * @param {String} [params.overlapPenalty] - Penalty for overlapping modes (used to calculate score). Can be '*' (default), '+', or 'none'.
      * @param {Number} [params.overlapWidth] - Used to calculate score (i.e. overlapping = nextFrequency < overlapWidth * currentFrequency). Defaults to 0.1;
      */
     const RoomModes = (params) => {
@@ -745,8 +637,8 @@
         let width = params.width;
         let height = params.height;
         let freqlimits = params.frequencyRange || [16, 500];
-        let stdNormalization = params.stdNormalization || 'biased';
-        let overlapPenalty = params.overlapPenalty || 'none';
+        let stdNormalization = params.stdNormalization || 'unbiased';
+        let overlapPenalty = params.overlapPenalty || '*';
         let overlapWidth = params.overlapWidth || 0.1;
 
         let bands = Bands.ThirdOctave.withLimits;
@@ -805,7 +697,7 @@
         freq = sort$1(freq).asc(u => u.frequency);
         bonello = sort$1(bonello).asc(u => u.band);
 
-        let stdDifference = math.std(derivative(freq.map(x => x.frequency)), stdNormalization);
+        let stdDifference = std(derivative(freq.map(x => x.frequency)), stdNormalization);
 
         let overlapCount = 0;
 
@@ -817,10 +709,10 @@
         let score;
         switch (overlapPenalty) {
             case "+":
-                score = stdDifference + math.log10(overlapCount + 1);
+                score = stdDifference + Math.log10(overlapCount + 1);
                 break;
             case "*":
-                score = stdDifference * math.log10(overlapCount + 1);
+                score = stdDifference * Math.log10(overlapCount + 1);
                 break;
             case "none":
                 score = stdDifference;
@@ -850,7 +742,6 @@
         // Barrier: Barrier,
         Properties: Properties,
         // Measurement: Measurement,
-        Modes: Modes,
         RoomModes: RoomModes
     };
 

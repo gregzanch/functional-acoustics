@@ -6,7 +6,6 @@ import dBsum from './functions/dBsum'
 // import Barrier from './barrier'
 import Properties from './properties'
 // import Measurement from './measurement'
-import Modes from './modes'
 import RoomModes from './modal/room-modes'
 
 const Acoustics = {
@@ -18,7 +17,6 @@ const Acoustics = {
     // Barrier: Barrier,
     Properties: Properties,
     // Measurement: Measurement,
-    Modes: Modes,
     RoomModes: RoomModes
 };
 
