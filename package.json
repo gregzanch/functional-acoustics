@@ -1,10 +1,11 @@
 {
   "name": "functional-acoustics",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "A javascript library that provides useful functionality for acousticians.",
   "main": "functional-acoustics.js",
   "scripts": {
-    "test": "rollup -c; node test/measurement.test.js",
+    "demo": "node demo/index.js",
+    "test": "rollup -c; mocha tests/functional-acoustics.test.js",
     "rollup": "rollup -c"
   },
   "keywords": [
@@ -12,15 +13,29 @@
     "functional-acoustcs",
     "math",
     "npm",
-    "package"
+    "package",
+    "sound"
   ],
-  "author": "",
-  "license": "ISC",
+  "maintainers": [
+    {
+      "name": "Greg Zanchelli",
+      "email": "zanchelli.greg@gmail.com",
+      "web": "https://github.com/gregzanch/"
+    }
+  ],
+  "author": "Greg Zanchelli",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gregzanch/functional-acoustics.git"
+  },
   "dependencies": {
     "fast-sort": "^1.5.6",
     "mathjs": "^5.6.0"
   },
   "devDependencies": {
+    "chai": "^4.2.0",
+    "mocha": "^6.0.2",
     "rollup-plugin-node-resolve": "^4.0.1"
   }
 }

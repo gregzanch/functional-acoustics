@@ -1,4 +1,4 @@
-import Bands from './bands';
+import Bands from './bands/bands';
 import Properties from './properties';
 import math from 'mathjs';
 import sort from "fast-sort";
