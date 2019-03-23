@@ -5,12 +5,8 @@ export default {
     output: {
         file: 'functional-acoustics.js',
         format: 'umd',
-        name: 'AC',
-        globals: {
-            "mathjs": 'math'
-        }
+        name: 'AC'
     },
-    external: ['mathjs'],
     plugins: [resolve({
         extensions: ['.mjs', '.js', '.jsx', '.json'],
         customResolveOptions: {

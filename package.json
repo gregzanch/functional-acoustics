@@ -1,6 +1,6 @@
 {
   "name": "functional-acoustics",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "description": "A javascript library that provides useful functionality for acousticians.",
   "main": "functional-acoustics.js",
   "scripts": {
@@ -29,9 +29,7 @@
     "type": "git",
     "url": "https://github.com/gregzanch/functional-acoustics.git"
   },
-  "dependencies": {
-    "mathjs": "^5.6.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "chai": "^4.2.0",
     "mocha": "^6.0.2",
