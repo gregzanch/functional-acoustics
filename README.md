@@ -10,5 +10,3 @@
 + Acoustic properties (i.e. speed of sound in air)
 + Frequency bands (Octave, 3rd Octave)
 + dB Weighting (A,B,C)
-
-## Usage

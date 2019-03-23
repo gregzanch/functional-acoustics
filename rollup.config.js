@@ -5,7 +5,7 @@ export default {
     output: {
         file: 'functional-acoustics.js',
         format: 'umd',
-        name: 'functional-acoustics',
+        name: 'AC',
         globals: {
             "mathjs": 'math'
         }

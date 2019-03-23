@@ -1,7 +1,7 @@
 (function (global, factory) {
     typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory(require('mathjs')) :
     typeof define === 'function' && define.amd ? define(['mathjs'], factory) :
-    (global = global || self, global['functional-acoustics'] = factory(global.math));
+    (global = global || self, global.AC = factory(global.math));
 }(this, function (math) { 'use strict';
 
     math = math && math.hasOwnProperty('default') ? math['default'] : math;
