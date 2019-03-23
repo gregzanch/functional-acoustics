@@ -1,9 +1,8 @@
 {
   "name": "functional-acoustics",
-  "version": "1.0.6",
-  "description": "",
+  "version": "1.0.8",
+  "description": "A javascript library that provides useful functionality for acousticians.",
   "main": "functional-acoustics.js",
-  "types": "function-acoustics.d.ts",
   "scripts": {
     "test": "rollup -c; node test/measurement.test.js",
     "rollup": "rollup -c"

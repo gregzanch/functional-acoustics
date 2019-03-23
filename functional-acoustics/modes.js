@@ -1,7 +1,7 @@
 import Bands from './bands';
 import Properties from './properties';
 import math from 'mathjs';
-import sort from 'fast-sort';
+import sort from "fast-sort";
 
 const Modes = {
     calcModes: (params) => {
@@ -106,10 +106,14 @@ const Modes = {
         }
 
         return {
-            dim: [length, width, height],
-            L: length,
-            W: width,
-            H: height,
+            dim: [
+                Number(length.toFixed(2)),
+                Number(width.toFixed(2)),
+                Number(height.toFixed(2))
+            ],
+            L: Number(length.toFixed(2)),
+            W: Number(width.toFixed(2)),
+            H: Number(height.toFixed(2)),
             modes: freq,
             bonello: bonello,
             score: score,

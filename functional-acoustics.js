@@ -285,12 +285,7 @@
     const Bands = {
         Octave: {
             Nominal: octave_bands.map(x=>x.Center),
-            fromRange: (start, end) => {
-                let nominal = octave_bands.map(x => x.Center);
-                let startindex = nominal.indexOf(start);
-                let count = nominal.indexOf(end) - startindex + 1;
-                return nominal.splice(startindex, count);
-            },
+            fromRange: (start, end) => octave_bands.map(x => x.Center).filter(x => x >= Number(start) && x <= Number(end)),
             withLimits: octave_bands
         },
         ThirdOctave: {
@@ -420,11 +415,9 @@
     };
 
     class Measurement {
-        constructor(measurementData) {
-            this.measurementData = measurementData;
-            if (this.measurementData.freq.length != this.measurementData.data.length) {
-                throw (`freq has length ${this.measurementData.freq.length} while data has length ${this.measurementData.data.length}`);
-            }
+        constructor(params) {
+            this.data = params.data || {};
+            
         }
     }
 
@@ -531,10 +524,14 @@
             }
 
             return {
-                dim: [length, width, height],
-                L: length,
-                W: width,
-                H: height,
+                dim: [
+                    Number(length.toFixed(2)),
+                    Number(width.toFixed(2)),
+                    Number(height.toFixed(2))
+                ],
+                L: Number(length.toFixed(2)),
+                W: Number(width.toFixed(2)),
+                H: Number(height.toFixed(2)),
                 modes: freq,
                 bonello: bonello,
                 score: score,

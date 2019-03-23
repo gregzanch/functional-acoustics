@@ -1,3 +1,3 @@
 # Functional Acoustics
 
-A library for your general acoustician
+`functional-acoustics` is a javascript library that provides useful functionality for acousticians.
