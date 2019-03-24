@@ -648,15 +648,25 @@
         let sortBonello = params.sortBonello || true;
 
         let bands = Bands.ThirdOctave.withLimits; 
-        let N = [];
+
+        const ModeTypes = ["Oblique", "Tangential", "Axial", "Unknown"];
+        let N = {
+            Oblique: [],
+            Tangential: [],
+            Axial: []
+        };
         for (let i = 0; i <= modeLimit; i++) {
             for (let j = 0; j <= modeLimit; j++) {
                 for (let k = 0; k <= modeLimit; k++) {
-                    N.push([i, j, k]);
+                    if ((i + j + k) != 0) {
+                        let mode = [i, j, k];
+                        let modeIndex = mode.filter(x => x == 0).length;
+                        N[ModeTypes[modeIndex]].push(mode);
+                    }
                 }
             }
         }
-        N = N.splice(1);
+
         let freq = [];
         const getBand = (f, limit = "Center") => {
             let _band;
@@ -667,7 +677,7 @@
             }
             return _band;
         };
-        const ModeTypes = ["Oblique", "Tangential", "Axial", "Unknown"];
+        
         const derivative = (arr) => {
             let d = [];
             for (let i = 0; i < arr.length - 1; i++) {
@@ -675,17 +685,16 @@
             }
             return d;
         };
-        for (let i = 0; i < N.length; i++){
-            let n = N[i];
+        for (let i = 0; i < N.Axial.length; i++){
+            let n = N.Axial[i];
             let f = c / 2 * Math.sqrt(Math.pow(n[0] / length, 2) + Math.pow(n[1] / width, 2) + Math.pow(n[2] / height, 2));
             if (f <= freqlimits[1]) {
                 if (f >= freqlimits[0]) {
-                    let modeIndex = n.filter(x => x == 0).length;
                     freq.push({
                         frequency: f,
                         mode: n,
-                        modeType: ModeTypes[modeIndex],
-                        modeTypeNumber: modeIndex + 1,
+                        modeType: "Axial",
+                        modeTypeNumber: 3,
                         band: getBand(f)
                     });
                 }
@@ -694,6 +703,43 @@
                 break;
             }
         }
+        for (let i = 0; i < N.Tangential.length; i++) {
+            let n = N.Tangential[i];
+            let f = c / 2 * Math.sqrt(Math.pow(n[0] / length, 2) + Math.pow(n[1] / width, 2) + Math.pow(n[2] / height, 2));
+            if (f <= freqlimits[1]) {
+                if (f >= freqlimits[0]) {
+                    freq.push({
+                      frequency: f,
+                      mode: n,
+                      modeType: "Tangential",
+                      modeTypeNumber: 2,
+                      band: getBand(f)
+                    });
+                }
+            }
+            else {
+                break;
+            }
+        }
+        for (let i = 0; i < N.Oblique.length; i++) {
+            let n = N.Oblique[i];
+            let f = c / 2 * Math.sqrt(Math.pow(n[0] / length, 2) + Math.pow(n[1] / width, 2) + Math.pow(n[2] / height, 2));
+            if (f <= freqlimits[1]) {
+                if (f >= freqlimits[0]) {
+                    freq.push({
+                      frequency: f,
+                      mode: n,
+                      modeType: "Oblique",
+                      modeTypeNumber: 1,
+                      band: getBand(f)
+                    });
+                }
+            }
+            else {
+                break;
+            }
+        }
+
 
         let bonelloBands = [...new Set(freq.map(x => x.band))];
 
