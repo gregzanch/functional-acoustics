@@ -622,6 +622,9 @@
      * @param {String} [params.stdNormalization] - Normalization for standard deviation calculation. Can be 'unbiased' (default), 'uncorrected', or 'biased';
      * @param {String} [params.overlapPenalty] - Penalty for overlapping modes (used to calculate score). Can be '*' (default), '+', or 'none'.
      * @param {Number} [params.overlapWidth] - Used to calculate score (i.e. overlapping = nextFrequency < overlapWidth * currentFrequency). Defaults to 0.1;
+     * @param {Number} [params.modeLimit] - Used to calculate the maximum mode number. Defaults to 15 (which should be plenty)
+     * @param {Boolean} [params.sortFrequencies] - Whether or not the frequencies should be sorted. Defaults to true
+     * @param {Boolean} [params.sortBonello] - Whether or not the bonello data should be sorted. Defaults to true
      */
     const RoomModes = (params) => {
         let units = params.units || "english";
@@ -640,9 +643,11 @@
         let stdNormalization = params.stdNormalization || 'unbiased';
         let overlapPenalty = params.overlapPenalty || '*';
         let overlapWidth = params.overlapWidth || 0.1;
+        let modeLimit = params.modeLimit || 15;
+        let sortFrequencies = params.sortFrequencies || true;
+        let sortBonello = params.sortBonello || true;
 
-        let bands = Bands.ThirdOctave.withLimits;
-        let modeLimit = 10; 
+        let bands = Bands.ThirdOctave.withLimits; 
         let N = [];
         for (let i = 0; i <= modeLimit; i++) {
             for (let j = 0; j <= modeLimit; j++) {
@@ -670,19 +675,25 @@
             }
             return d;
         };
-        N.forEach(n => {
+        for (let i = 0; i < N.length; i++){
+            let n = N[i];
             let f = c / 2 * Math.sqrt(Math.pow(n[0] / length, 2) + Math.pow(n[1] / width, 2) + Math.pow(n[2] / height, 2));
-            if (f >= freqlimits[0] && f <= freqlimits[1]) {
-                let modeIndex = n.filter(x => x == 0).length;
-                freq.push({
-                    frequency: f,
-                    mode: n,
-                    modeType: ModeTypes[modeIndex],
-                    modeTypeNumber: modeIndex + 1,
-                    band: getBand(f)
-                });
+            if (f <= freqlimits[1]) {
+                if (f >= freqlimits[0]) {
+                    let modeIndex = n.filter(x => x == 0).length;
+                    freq.push({
+                        frequency: f,
+                        mode: n,
+                        modeType: ModeTypes[modeIndex],
+                        modeTypeNumber: modeIndex + 1,
+                        band: getBand(f)
+                    });
+                }
             }
-        });
+            else {
+                break;
+            }
+        }
 
         let bonelloBands = [...new Set(freq.map(x => x.band))];
 
@@ -693,9 +704,9 @@
             }
         });
 
+        if (sortFrequencies) freq = sort$1(freq).asc(u => u.frequency);
+        if (sortBonello) bonello = sort$1(bonello).asc(u => u.band);
 
-        freq = sort$1(freq).asc(u => u.frequency);
-        bonello = sort$1(bonello).asc(u => u.band);
 
         let stdDifference = std(derivative(freq.map(x => x.frequency)), stdNormalization);
 
