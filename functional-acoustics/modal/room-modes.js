@@ -84,9 +84,6 @@ const RoomModes = (params) => {
                 });
             }
         }
-        else {
-            break;
-        }
     }
 
     let bonelloBands = [...new Set(freq.map(x => x.band))];
