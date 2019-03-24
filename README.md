@@ -33,7 +33,7 @@ console.log(spl);
 Install via cdn:
 
 ```html
-<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/functional-acoustics@1.0.13/functional-acoustics.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/functional-acoustics@1.0.18/functional-acoustics.js"></script>
 ```
 
 Gets exposed to the global scope as 'AC'
