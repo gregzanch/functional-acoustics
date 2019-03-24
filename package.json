@@ -1,6 +1,6 @@
 {
   "name": "functional-acoustics",
-  "version": "1.0.13",
+  "version": "1.0.14",
   "description": "A javascript library that provides useful functionality for acousticians.",
   "main": "functional-acoustics.js",
   "scripts": {

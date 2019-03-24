@@ -642,7 +642,7 @@
         let overlapWidth = params.overlapWidth || 0.1;
 
         let bands = Bands.ThirdOctave.withLimits;
-        let modeLimit = 20; 
+        let modeLimit = 10; 
         let N = [];
         for (let i = 0; i <= modeLimit; i++) {
             for (let j = 0; j <= modeLimit; j++) {
