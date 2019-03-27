@@ -1,0 +1,9 @@
+{
+    "semi": false,
+    "overrides": [{
+        "files": ["*.test.js","functional-acoustics/lib/*.js"],
+        "options": {
+            "semi": true
+        }
+    }]
+}

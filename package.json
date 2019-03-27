@@ -5,6 +5,7 @@
   "main": "functional-acoustics.js",
   "scripts": {
     "demo": "node demo/index.js",
+    "start": "node demo/index.js",
     "test": "rollup -c; mocha tests/functional-acoustics.test.js",
     "rollup": "rollup -c"
   },
@@ -32,6 +33,9 @@
   "dependencies": {},
   "devDependencies": {
     "chai": "^4.2.0",
+    "eslint": "^5.15.3",
+    "eslint-config-airbnb-base": "^13.1.0",
+    "eslint-plugin-import": "^2.16.0",
     "mocha": "^6.0.2",
     "rollup-plugin-node-resolve": "^4.0.1"
   }

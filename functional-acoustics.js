@@ -44,14 +44,22 @@
 
     const Conversion = {
         LpFromLw: (Lw, r = 1, Q = 1) => {
-            if (typeof Lw === "number")
-                Lw = [Lw];
-            return Lw.map(lw => lw - Math.abs(10 * Math.log10(Q / (4 * Math.PI * r * r))));
+            if (typeof Lw === "number") Lw = [Lw];
+            return Lw.map(
+                lw => lw - Math.abs(10 * Math.log10(Q / (4 * Math.PI * r * r)))
+            );
         },
         LnFromLp: (Lp, Ar, Ao = 108) => {
-            if (typeof Lp === "number")
-                Lp = [Lp];
+            if (typeof Lp === "number") Lp = [Lp];
             return Lp.map(lp => lp - 10 * Math.log10(Ao / Ar));
+        },
+        temp: {
+            c2f: c => (c * 9) / 5 + 32, // celcius to fahrenheit
+            c2k: c => c + 273.15, // celcius to kelvin
+            f2c: f => ((f - 32) * 5) / 9, // fahrenheit to celcius
+            f2k: f => (f - 32) * (5 / 9) + 273.15, // fahrenheit to kelvin
+            k2c: k => 273.15 - k, // kelvin to celcius
+            k2f: k => (k - 273.15) * (9 / 5) + 32 // kelvin to fahrenheit
         }
     };
 
@@ -279,70 +287,76 @@
         }
     ];
 
-    const Bands = {
-        Octave: {
-            Nominal: octave_bands.map(x=>x.Center),
-            fromRange: (start, end) => octave_bands.map(x => x.Center).filter(x => x >= Number(start) && x <= Number(end)),
-            withLimits: octave_bands
-        },
-        ThirdOctave: {
-            Nominal: third_octave_bands.map(x => x.Center),
-            fromRange: (start, end) => {
-                return third_octave_bands.map(x => x.Center).filter(x => x >= Number(start) && x <= Number(end));
-            },
-            withLimits: third_octave_bands
-        },
-        Flower: (k, fc) => {
-            if (typeof fc === "number")
-                fc = [fc];
-            return fc.map(f => f / Math.pow(2, 1 / (2 * k)));
-        },
-        Fupper: (k, fc) => {
-            if (typeof fc === "number")
-                fc = [fc];
-            return fc.map(f=>f * Math.pow(2, 1 / (2 * k)));
-        }
-    };
-
-    /** 
-     * Performs dB addition on every array passed in, rounded to an optional precision. 
-     * @deprecated use dBsum instead
-     * @param  {number[]} dBs - An n-dimmensional array of numbers
-     * @param {number=} decimalPrecision - Number of decimals places to round the output to
-     * @returns {number|number[]} A number or an (n-1)-dimmensional array of numbers
+    /**
+     * @namespace Bands - Frequnecy band utilities
      */
-    const dBAdd = (dBs, decimalPrecision=1) => {
-        let _sum_;
-        if (typeof dBs === "number") {
-            throw "dBAdd requires an array, not a single number";
+    const Bands = {
+      /**
+       * @namespace Octave - Octave Band utilities
+       */
+      Octave: {
+        /**
+         * @member Nominal - Octave band nominal center frequencies
+         */
+        Nominal: octave_bands.map(x => x.Center),
+        /**
+         * @member Nominal - Octave band frequencies with limits
+         */
+        withLimits: octave_bands,
+        /**
+         * @function fromRange - returns the octave bands center frequencies between the specified limits
+         * @param {Number} start the lower frequency limit
+         * @param {Number} end the upper frequency limit
+         */
+        fromRange: (start, end) =>
+          octave_bands
+            .map(x => x.Center)
+            .filter(x => x >= Number(start) && x <= Number(end))
+      },
+      /**
+       * @namespace ThirdOctave - Third octave Band utilities
+       */
+      ThirdOctave: {
+        /**
+         * @member Nominal - Third octave band nominal center frequencies
+         */
+        Nominal: third_octave_bands.map(x => x.Center),
+        /**
+         * @member Nominal - Third octave band frequencies with limits
+         */
+        withLimits: third_octave_bands,
+        /**
+         * @function fromRange - returns the third octave bands center frequencies between the specified limits
+         * @param {Number} start the lower frequency limit
+         * @param {Number} end the upper frequency limit
+         * @returns {Number[]} third octave bands center frequencies between the specified limits
+         */
+        fromRange: (start, end) => {
+          return third_octave_bands
+            .map(x => x.Center)
+            .filter(x => x >= Number(start) && x <= Number(end));
         }
-        else if (typeof dBs === "string") {
-             throw "dBAdd requires an array, not a single string";
-        }
-        else if (typeof dBs === "object") {
-                if (typeof dBs[0] === "number") {
-                    _sum_ = 10 * Math.log10(dBs.map(x => Math.pow(10, x / 10)).reduce((acc, a) => acc + a));
-                }
-                else if (typeof dBs[0] === "string") {
-                    try {
-                        _sum_ = 10 * Math.log10(dBs.map(x => Math.pow(10, Number(x) / 10)).reduce((acc, a) => acc + a));
-                    } catch (error) {
-                        throw error
-                    }
-                }
-                else if (typeof dBs[0] === "object") {
-                    try {
-                        _sum_ = dBs.map(x => dBAdd(x));
-                    }
-                    catch (error) {
-                        throw error
-                    }
-                }
-            return _sum_;
-        }
-        else {
-            return null;
-        }
+      },
+      /**
+       * @function Flower returns the band's lower frequency limit
+       * @param {Number} k - band fraction (i.e. 3 for 3rd octave, 1 for whole octave)
+       * @param {Number} fc - band cetner frequency
+       * @returns {Number} the band's lower frequency limit
+       */
+      Flower: (k, fc) => {
+        if (typeof fc === "number") fc = [fc];
+        return fc.map(f => f / Math.pow(2, 1 / (2 * k)));
+      },
+      /**
+       * @function Fupper returns the band's upper frequency limit
+       * @param {Number} k - band fraction (i.e. 3 for 3rd octave, 1 for whole octave)
+       * @param {Number} fc - band cetner frequency
+       * @returns {Number} the band's upper frequency limit
+       */
+      Fupper: (k, fc) => {
+        if (typeof fc === "number") fc = [fc];
+        return fc.map(f => f * Math.pow(2, 1 / (2 * k)));
+      }
     };
 
     /** 
@@ -383,69 +397,173 @@
         }
     };
 
+    /**
+     * lodash (Custom Build) <https://lodash.com/>
+     * Build: `lodash modularize exports="npm" -o ./`
+     * Copyright jQuery Foundation and other contributors <https://jquery.org/>
+     * Released under MIT license <https://lodash.com/license>
+     * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
+     * Copyright Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+     */
+
     const Properties = {
+      /**
+       * Calculate the speed of sound in a given material
+       * using Young's Modulus 'E' and density 'rho'
+       * @param E Young's Modulus
+       * @param rho Density
+       * @returns Speed of Sound
+       */
+      SpeedOfSound: (E, rho) => {
+        return Math.sqrt(E / rho);
+      },
 
-        /**
-         * Calculate the speed of sound in a given material
-         * using Young's Modulus 'E' and density 'rho'
-         * @param E Young's Modulus
-         * @param rho Density
-         * @returns Speed of Sound
-         */
-        SpeedOfSound: (E, rho) => {
-            return Math.sqrt(E / rho);
+      /**
+       * Calculate wave number 'k'
+       * @param omega Angular Frequency
+       * @param c Speed of Sound
+       * @returns Wave Number 'k'
+       */
+      WaveNumber: (omega, c) => {
+        return omega / c;
+      },
+
+      /**
+       * Calculate acoustic impedance 'Z'
+       * @param rho Density
+       * @param c Speed of Sound
+       * @returns Acoustic Impedance 'Z'
+       */
+      Impedance: (rho, c) => {
+        return rho * c;
+      },
+
+      Air: {
+        SpeedOfSound: props => {
+          let temp = props.temp.value || 273.15;
+          let tempunits = props.temp.units || "K";
+          let returnunits = props.units || "m/s";
+          let c = 20.04 * Math.sqrt(temp);
+          switch (tempunits) {
+            case "K":
+              c = 20.04 * Math.sqrt(temp);
+              break;
+            case "C":
+              c = 20.04 * Math.sqrt(273.15 + temp);
+              break;
+            case "F":
+              c = 20.04 * Math.sqrt((temp - 32) * (5 / 9) + 273.15);
+              break;
+            default:
+              break;
+          }
+          switch (returnunits) {
+            case "ft/s":
+              c *= 3.281;
+              break;
+            default:
+              break;
+          }
+          return c;
         },
-
         /**
-         * Calculate wave number 'k'
-         * @param omega Angular Frequency
-         * @param c Speed of Sound
-         * @returns Wave Number 'k'
+         * Calculate sound absorption in air
+         * @param {Object} params Calculation parameters
+         * @param {Number|Number[]} [params.frequency] Frequencies to calculate for (Defaults to Octave Band frequencies)
+         * @param {Number} [params.temperature] Ambient Temperature (Defaults to 20 C)
+         * @param {Number} [params.pressure] Atmospheric Pressure (Defaults to 101.325 kPa)
+         * @param {Number} [params.humidity]  Humidity expressed as a percentage (Defaults to 50%)
+         * @param {String} [params.tempUnits] Units for the temperature parameter (Defaults to C)
+         * @param {String} [params.pressureUnits] Units for the pressure parameter (Defaults to kPa)
+         * @param {String} [params.humidityMethod] How humidity parameter is expressed ('RH' for Relative Humidity, 'Mol' for Molar Concentration of Water Vapour) (Defaults to 'RH')
+         * @see http://resource.npl.co.uk/acoustics/techguides/absorption/
          */
-        WaveNumber: (omega, c) => {
-            return omega / c;
-        },
+        Absorption: params => {
+          let Freq = params.frequency || Bands.Octave.Nominal;
+          let T = params.temperature || 20;
+          let P = params.pressure || 101.325;
+          let Humidity = params.Humidity || 50;
+          let FreqIsNumber = (typeof Freq === "number");
+          if (FreqIsNumber) Freq = [Freq];
 
-        /**
-         * Calculate acoustic impedance 'Z'
-         * @param rho Density
-         * @param c Speed of Sound
-         * @returns Acoustic Impedance 'Z'
-         */
-        Impedance: (rho, c) => {
-            return rho * c;
-        },
+            
+          let alpha = Freq.map((F) => {
+            const F2 = F * F;
+            var Alpha; // atmospheric absorption
 
-        Air: {
-            SpeedOfSound: (props) => {
-                let temp = props.temp.value || 273.15;
-                let tempunits = props.temp.units || "K";
-                let returnunits = props.units || "m/s";
-                let c = 20.04 * Math.sqrt(temp);
-                switch (tempunits) {
-                    case "K":
-                        c = 20.04 * Math.sqrt(temp);
-                        break;
-                    case "C":
-                        c = 20.04 * Math.sqrt(273.15+temp);
-                        break;
-                    case "F":
-                        c = 20.04 * Math.sqrt((temp - 32) * (5 / 9) + 273.15);
-                        break;
-                    default:
-                        break;
-                }
-                switch (returnunits) {
-                    case "ft/s":
-                        c *= 3.281;
-                        break;
-                    default:
-                        break;
-                }
-                return c;
-            }
+            var T_ref; // temperature at 20C (Kelvin)
+            var P_ref; // reference pressure (Pascals)
+            var P_rel; // relative pressure
+            var T_rel; // relative temperature
+            var T_kel; // ambient temperature (Kelvin)
+            var T_01; // triple point isotherm temperature (Kelvin)
+            var P_sat_over_P_ref; // saturation vapour pressure/ reference pressure
+
+            var Fro; // oxygen relaxation frequency (Hertz)
+            var Frn; // nitrogen relaxation frequency (Hertz)
+            var Xc, Xn, Xo; // intermediate calculations for classical, nitro and oxygen
+            var H; // molecular concentration of water vapour
+            var Kelvin = 273.15; //For converting to Kelvin
+            var e = 2.718282;
+
+            T_ref = Kelvin + 20; //Reference temp = 20 degC
+            T_kel = Kelvin + T; //Measured ambient temp
+            T_rel = T_kel / T_ref; //Relative temp
+            T_01 = Kelvin + 0.01; //Triple point isotherm temperature (Kelvin)
+            P_ref = 101.325; //Reference atmospheric P = 101.325 kPa
+            P_rel = P / P_ref; //Relative pressure
+
+            /* Molecular Concentration of water vapour */
+            P_sat_over_P_ref = Math.pow(
+              10,
+              -6.8346 * Math.pow(T_01 / T_kel, 1.261) + 4.6151
+            );
+
+            /* ISO 9613-1, Annex B, B.1 */
+            H = Humidity * (P_sat_over_P_ref / P_rel);
+
+            /* ISO 9613-1, 6.2, eq.3 */
+            Fro = P_rel * (24 + (40400 * H * (0.02 + H)) / (0.391 + H));
+
+            /* ISO 9613-1, 6.2, eq.4 */
+            Frn =
+              (P_rel / Math.sqrt(T_rel)) *
+              (9 + 280 * H * Math.pow(e, -4.17 * (Math.pow(T_rel, -1 / 3) - 1)));
+
+            /* ISO 9613-1, 6.2, part of eq.5 */
+            Xc = (0.0000000000184 / P_rel) * Math.sqrt(T_rel);
+            Xo =
+              0.01275 * Math.pow(e, -2239.1 / T_kel) * Math.pow(Fro + F2 / Fro, -1);
+            Xn = 0.1068 * Math.pow(e, -3352 / T_kel) * Math.pow(Frn + F2 / Frn, -1);
+
+            /* ISO 9613-1, 6.2, eq.5 */
+            Alpha =
+              20 * Math.log10(e) * F2 * (Xc + Math.pow(T_rel, -5 / 2) * (Xo + Xn));
+
+            return Alpha;
+          });
+          return (FreqIsNumber)?alpha[0]:alpha;
         }
+      }
     };
+
+    class Measurement {
+      constructor(data = [], type = "lp") {
+        this.props = {
+          type,
+          data
+        };
+        this.weight = Weight;
+        this.conversion = Conversion;
+        this.bands = Bands;
+        this.dBsum = dBsum;
+        this.properties = Properties;
+      }
+      set(label, data) {
+        this.props[label] = data;
+        return this;
+      }
+    }
 
     const mean = x => x.reduce((p, c) => p + c, 0) / x.length;
 
@@ -742,15 +860,13 @@
     };
 
     const Acoustics = {
-        Weight: Weight,
-        Conversion: Conversion,
-        Bands: Bands,
-        dBAdd: dBAdd,
-        dBsum: dBsum,
-        // Barrier: Barrier,
-        Properties: Properties,
-        // Measurement: Measurement,
-        RoomModes: RoomModes
+      Measurement,
+      Weight,
+      Conversion,
+      Bands,
+      dBsum,
+      Properties,
+      RoomModes,
     };
 
     return Acoustics;
