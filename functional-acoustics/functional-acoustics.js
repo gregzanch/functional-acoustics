@@ -1,23 +1,39 @@
-import Weight from './weight'
-import Conversion from './conversion'
+import Weight from './weight/weight'
+import Conversion from './conversion/conversion'
 import Bands from './bands/bands'
-import dBAdd from './functions/dBAdd'
 import dBsum from './functions/dBsum'
-// import Barrier from './barrier'
-import Properties from './properties'
-// import Measurement from './measurement'
+import Transmission from './transmission/transmission';
+import Properties from './properties/properties';
 import RoomModes from './modal/room-modes'
+import Buffer from './util/buffer';
+import Constants from './constants/constants';
+import units from './units/units';
+import Measurement from './measurement/measurement';
+import Types from './data/types';
+import convertUnits from './units/convert';
 
-const Acoustics = {
-    Weight: Weight,
-    Conversion: Conversion,
-    Bands: Bands,
-    dBAdd: dBAdd,
-    dBsum: dBsum,
-    // Barrier: Barrier,
-    Properties: Properties,
-    // Measurement: Measurement,
-    RoomModes: RoomModes
+import RT from './reverberation/rt/rt';
+import FFT from './fft/fft';
+import RMS from './util/rms';
+
+
+const AC = {
+  Weight: Weight,
+  Conversion: Conversion,
+  Bands: Bands,
+  dBsum: dBsum,
+  Transmission: Transmission,
+  Properties: Properties,
+  RoomModes: RoomModes,
+  Constants: Constants,
+  Measurement: Measurement,
+  Types: Types,
+  FFT: FFT,
+  RT: RT,
+  Buffer: Buffer,
+  RMS: RMS,
+  units: units
 };
 
-export default Acoustics;
+export default AC;
+

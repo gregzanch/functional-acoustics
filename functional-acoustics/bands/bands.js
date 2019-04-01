@@ -5,7 +5,7 @@ const Bands = {
     Octave: {
         Nominal: octave_bands.map(x=>x.Center),
         fromRange: (start, end) => octave_bands.map(x => x.Center).filter(x => x >= Number(start) && x <= Number(end)),
-        withLimits: octave_bands
+        withLimits: octave_bands,
     },
     ThirdOctave: {
         Nominal: third_octave_bands.map(x => x.Center),
