@@ -9,6 +9,7 @@ const Conversion = {
             Lp = [Lp]
         return Lp.map(lp => lp - 10 * Math.log10(Ao / Ar));
     }
+    
 }
 
 

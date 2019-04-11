@@ -1,7 +1,7 @@
 import ID from '../util/id';
 import units from '../units/units';
 import num from '../util/num';
-import round from '../util/round';
+import { round } from '../util/round';
 
 class Data {
     constructor(id) {

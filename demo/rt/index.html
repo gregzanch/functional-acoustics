@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>rt</title>
+    <link rel="stylesheet" href="style.css">
+    <script>
+        window.help = 0x68656c70
+    </script>
+  
+</head>
+
+<body>
+    <div>
+        <input id="fromSave" type="file" class="hidden">
+        <input id="open" type="button" value="Open">
+        <span class = "filename" id="filename">~</span>
+    </div>
+    <div>
+        <input id="save" type="button" value="Save">
+    </div>
+        <div>
+            <input id="optimize" type="button" value="Optimize">
+        </div>
+    <input type="button" value="show solver" id="solver" for="solverform">
+    <div id ="solverform" class="form hidden">
+        <div>
+            <span>Frequencies: </span>
+            <input type="text" id="solverFrequencies">
+        </div>
+    </div>
+    <div id="res"></div>
+    <div>
+        <span>Solver Iterations: </span>
+        <input type="number" id="solverIterations" value="50">
+    </div>
+
+    <svg width="600" height="300"></svg>
+
+    <script type='module' src='./script.js'></script>
+</body>
+
+</html>

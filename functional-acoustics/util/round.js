@@ -1,3 +1,3 @@
-const round = (value, precision = 1) => Math.round(value / precision) * precision;
+import { numarrayfunction } from './num-array-function';
 
-export default round;
+export const round = (value, precision = 1) => numarrayfunction(value,x => Math.round(x / precision) * precision);

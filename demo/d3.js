@@ -19478,5 +19478,5 @@ d3.voronoi = voronoi;
 d3.zoom = zoom;
 d3.zoomTransform = transform$1;
 d3.zoomIdentity = identity$9;
-
+d3.Transform = Transform;
 export default d3;

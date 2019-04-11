@@ -20,6 +20,7 @@ import sort from '../util/sort';
  * @param {Boolean} [params.sortFrequencies] - Whether or not the frequencies should be sorted. Defaults to true
  * @param {Boolean} [params.sortBonello] - Whether or not the bonello data should be sorted. Defaults to true
  */
+
 const RoomModes = (params) => {
     let units = params.units || "english";
     let c = params.c || Properties.Air.SpeedOfSound({

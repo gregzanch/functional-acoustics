@@ -1,5 +1,8 @@
 const Properties = {
 
+    //todo provide material properties from page 59 of fundamentals of acoustics, table 2.3.
+
+
     /**
      * Calculate the speed of sound in a given material
      * using Young's Modulus 'E' and density 'rho'
@@ -15,10 +18,19 @@ const Properties = {
      * Calculate wave number 'k'
      * @param omega Angular Frequency
      * @param c Speed of Sound
+     * @param lambda wavelength
      * @returns Wave Number 'k'
      */
-    WaveNumber: (omega, c) => {
-        return omega / c;
+    WaveNumber: ({ omega, c, lambda }) => {
+        if (lambda) {
+            return 2 * Math.PI / lambda;
+        }
+        else if (omega && c) {
+            return omega / c;
+        }
+        else {
+            throw 'Not enough parameters!'
+        }
     },
 
     /**

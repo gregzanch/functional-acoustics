@@ -1,6 +1,8 @@
 import Weight from './weight';
 import WeightTranslation from '../verbose/translations/weight-translation';
 
+
+/** Class for converting weighted measurements */
 class WeightConverter {
     constructor(freq_db_pairs) {
         this.frequencies = freq_db_pairs.map(fdb => fdb[0]);

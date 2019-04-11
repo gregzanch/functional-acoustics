@@ -19,6 +19,9 @@ const WeightTranslation = (str) => {
 
 /* https://en.wikipedia.org/wiki/A-weighting#Function_realisation_of_some_common_weightings */
 
+const pow2 = (x) => Math.pow(x, 2);
+const pow3 = (x) => Math.pow(x, 3);
+
 const Weight = {
     R_a: (f) => {
         let f2 = f * f;
@@ -31,31 +34,27 @@ const Weight = {
         else if (typeof f == "object")
             return f.map(freq=>20 * Math.log10(Weight.R_a(freq)) + 2.00);
     },
-    R_b: (f) => {
-        let f3 = f * f * f;
-        let f2 = f * f;
-        return (148693636 * f3) / ((f2 + 424.36) * Math.sqrt(f2 + 158 * 158) * (f2 * 148693636));
-    },
+
+    R_b: (f) => (pow2(12194) * pow3(f)) / ((pow2(f) + pow2(20.6)) * Math.sqrt(pow2(f) + pow2(158)) * (pow2(f) + pow2(12194))),
     B: (f) => {
         if (typeof f == "number")
             return 20 * Math.log10(Weight.R_b(f)) + 0.17;
         else if (typeof f == "object")
             return f.map(freq => 20 * Math.log10(Weight.R_b(freq)) + 0.17);
     },
-    R_c: (f) => {
-        let f2 = f * f;
-        return (148693636 * f2) / ((f2 + 424.36) * (f2 * 148693636));
-    },
+
+    R_c: (f) => (pow2(12194) * pow2(f)) / ((pow2(f) + pow2(20.6)) * (pow2(f) + pow2(12194))),
     C: (f) => {
         if (typeof f == "number")
             return 20 * Math.log10(Weight.R_c(f)) + 0.06;
         else if (typeof f == "object")
             return f.map(freq => 20 * Math.log10(Weight.R_c(freq)) + 0.06);
     },
-    
+
     h: (f) => (Math.pow((1037918.48 - f * f), 2) + 1080768.16 * f * f) / (Math.pow((9837328 - f * f), 2) + 11723776 * f * f),
     R_d: (f) => ((f) / (6.8966888496476e-5)) * Math.sqrt(Weight.h(f) / ((f * f + 79919.29) * (f * f + 1345600))),
-    D: (f) => 20*Math.log10(Weight.R_d(f)),
+    D: (f) => 20 * Math.log10(Weight.R_d(f)),
+    
     convert: (freq_db_pairs) => {
         return new _WeightConverter(freq_db_pairs);
     }
@@ -141,6 +140,7 @@ const Conversion = {
             Lp = [Lp];
         return Lp.map(lp => lp - 10 * Math.log10(Ao / Ar));
     }
+    
 };
 
 var octave_bands = [{
@@ -477,6 +477,9 @@ const Transmission = {
 
 const Properties = {
 
+    //todo provide material properties from page 59 of fundamentals of acoustics, table 2.3.
+
+
     /**
      * Calculate the speed of sound in a given material
      * using Young's Modulus 'E' and density 'rho'
@@ -492,10 +495,19 @@ const Properties = {
      * Calculate wave number 'k'
      * @param omega Angular Frequency
      * @param c Speed of Sound
+     * @param lambda wavelength
      * @returns Wave Number 'k'
      */
-    WaveNumber: (omega, c) => {
-        return omega / c;
+    WaveNumber: ({ omega, c, lambda }) => {
+        if (lambda) {
+            return 2 * Math.PI / lambda;
+        }
+        else if (omega && c) {
+            return omega / c;
+        }
+        else {
+            throw 'Not enough parameters!'
+        }
     },
 
     /**
@@ -718,6 +730,7 @@ function sort$1 (ctx) {
  * @param {Boolean} [params.sortFrequencies] - Whether or not the frequencies should be sorted. Defaults to true
  * @param {Boolean} [params.sortBonello] - Whether or not the bonello data should be sorted. Defaults to true
  */
+
 const RoomModes = (params) => {
     let units = params.units || "english";
     let c = params.c || Properties.Air.SpeedOfSound({
@@ -851,13 +864,19 @@ const buffer = (arr, n, fill) => {
     }
 };
 
-const constants = {
-    EPSILON: 1e-12,
-    reference: {
-        pressure: 2e-5,
-        power: 1e-12,
-        intensity: 1e-12
-    }
+const pref = {
+    value: 2e-5,
+    units: 'Pa'
+};
+
+const Wref = {
+    value: 1e-12,
+    units: 'W'
+};
+
+const Iref = {
+    value: 1e-12,
+    units: 'W/m2'
 };
 
 /**
@@ -3974,7 +3993,16 @@ const numArrayCheck = (numArray) => arrCheck(numArray) ? numArray.filter(n => !n
 const computable = (v) => numCheck(v) || numArrayCheck(v);
 var num = { numCheck, arrCheck, numArrayCheck, computable };
 
-const round = (value, precision = 1) => Math.round(value / precision) * precision;
+function numarrayfunction(v, f) {
+    if (Number.isFinite(v)) {
+        return f(v);
+    }
+    else if (v instanceof Array) {
+        return v.map(x => f(x));
+    }
+}
+
+const round = (value, precision = 1) => numarrayfunction(value,x => Math.round(x / precision) * precision);
 
 class Data {
     constructor(id) {
@@ -4530,82 +4558,185 @@ class Measurement {
     }
 }
 
-class RT{
-    constructor(params) {
-        console.log(params);
+class Complex {
+    constructor() {
+        if (arguments.length == 1) {
+            this.real = arguments[0];
+             if (Number.isFinite(this.real)) {
+                 this.imag = 0;
+             } else if (this.real instanceof Array) {
+                 this.imag = new Array(this.real.length).fill(0);
+             } else {
+                 console.log(this.real);
+                 throw "unsupported data type";
+             }
+        }
+        else if (arguments.length == 2) {
+            this.real = arguments[0];
+            this.imag = arguments[1];
+        }
+        else if (arguments.length == 0 || arguments.length > 2) {
+            throw "too many arguments";
+        }
     }
-
+    isComplex(n) {
+        return n?(n instanceof Complex):true;
+    }
 }
 
-/* 
- * Free FFT and convolution (JavaScript)
- * 
- * Copyright (c) 2017 Project Nayuki. (MIT License)
- * https://www.nayuki.io/page/free-small-fft-in-multiple-languages
- * 
- * Permission is hereby granted, free of charge, to any person obtaining a copy of
- * this software and associated documentation files (the "Software"), to deal in
- * the Software without restriction, including without limitation the rights to
- * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
- * the Software, and to permit persons to whom the Software is furnished to do so,
- * subject to the following conditions:
- * - The above copyright notice and this permission notice shall be included in
- *   all copies or substantial portions of the Software.
- * - The Software is provided "as is", without warranty of any kind, express or
- *   implied, including but not limited to the warranties of merchantability,
- *   fitness for a particular purpose and noninfringement. In no event shall the
- *   authors or copyright holders be liable for any claim, damages or other
- *   liability, whether in an action of contract, tort or otherwise, arising from,
- *   out of or in connection with the Software or the use or other dealings in the
- *   Software.
- */
+const Signal = {
+    PureTone: (params) => {
+        let frequency = params.frequency || 440;
+        let length = params.length || 1;
+        let gain = params.gain || 1;
+        let samplerate = params.samplerate || 44100;
+        let buffersize = params.buffersize || 1024;
+        let n = samplerate * length;
+        let s = [];
+        let j = [];
+        for (let i = 0; i < n; i++) {
+            j.push(gain * Math.sin(2 * Math.PI * frequency * i / samplerate));
+            if (j.length == buffersize) {
+                s.push(j);
+                j = [];
+            }
+        }
+        s.push(j);
+        return s;
+    }
+};
 
+function mul(k, v) {
+    return new Vector(k * v.x, k * v.y, k * v.z);
+}class Vector {
+    constructor(x, y, z) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+    }
+    mul(k, v) {
+        return new Vector(k * v.x, k * v.y, k * v.z);
+    }
+    sub(v1, v2) {
+        return new Vector(v1.x - v2.x, v1.y - v2.y, v1.z - v2.z);
+    }
+    add(v1, v2) {
+        return new Vector(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z);
+    }
+    dot(v1, v2) {
+        return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
+    }
+    mag(v) {
+        return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+    }
+    norm(v) {
+        var _mag = Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+        var div = (_mag === 0) ? Infinity : 1.0 / _mag;
+        return mul(div, v);
+    }
+    cross(v1, v2) {
+        return new Vector(v1.y * v2.z - v1.z * v2.y, v1.z * v2.x - v1.x * v2.z, v1.x * v2.y - v1.y * v2.x);
+    }
+}
 
-/* 
+const triangleArea = (r1, r2, r3) => {
+    let a = Vector.prototype.mag(Vector.prototype.sub(r1, r2));
+    let b = Vector.prototype.mag(Vector.prototype.sub(r2, r3));
+    let c = Vector.prototype.mag(Vector.prototype.sub(r3, r1));
+    let p = a + b + c;
+    let s = p / 2;
+    return Math.sqrt(s * (s - a) * (s - b) * (s - c));
+};
+
+class Surface {
+    constructor({
+        name,
+        faces,
+        surfaceArea,
+        materialNumber,
+        isVar,
+        hasParent,
+        children,
+        materialCoefficients
+    } = {}) {
+        this.name = name || "new surface";
+        this.faces = faces || [];
+        this.surfaceArea = surfaceArea;
+        this.modifiedSurfaceArea = surfaceArea;
+        this.materialNumber = materialNumber;
+        this.isVar = isVar || false;
+        this.hasParent = hasParent || false;
+        this.children = children || [];
+        this.materialCoefficients = materialCoefficients || [];
+        this.resolveSabins();
+    }
+    resolveSabins() {
+       
+        if (this.materialCoefficients.length > 0) {
+            this.sabins = this.materialCoefficients.map(
+                x => x * this.modifiedSurfaceArea
+            );
+        }
+    
+    }
+    addChild(surface) {
+        if (surface.hasParent) {
+            throw surface.name + " Cannot have more than one parent!"
+        } else {
+            this.children.push(surface);
+            this.children[this.children.length - 1].hasParent = true;
+        }
+        return this;
+
+    }
+    setVar(isVar) {
+        this.isVar = isVar;
+        return this;
+    }
+}
+
+/*
  * Computes the discrete Fourier transform (DFT) of the given complex vector, storing the result back into the vector.
  * The vector can have any length. This is a wrapper function.
  */
-const transform = (real, imag) => {
+function transform(real, imag) {
     var n = real.length;
     if (n != imag.length)
         throw "Mismatched lengths";
     if (n == 0)
         return;
-    else if ((n & (n - 1)) == 0)  // Is power of 2
+    else if ((n & (n - 1)) == 0) // Is power of 2
         transformRadix2(real, imag);
-    else  // More complicated algorithm for arbitrary sizes
+    else // More complicated algorithm for arbitrary sizes
         transformBluestein(real, imag);
-};
+}
 
-
-/* 
+/*
  * Computes the inverse discrete Fourier transform (IDFT) of the given complex vector, storing the result back into the vector.
  * The vector can have any length. This is a wrapper function. This transform does not perform scaling, so the inverse is not a true inverse.
  */
-const inverseTransform = (real, imag) => {
+function inverseTransform(real, imag) {
     transform(imag, real);
-};
+}
 
-
-/* 
+/*
  * Computes the discrete Fourier transform (DFT) of the given complex vector, storing the result back into the vector.
  * The vector's length must be a power of 2. Uses the Cooley-Tukey decimation-in-time radix-2 algorithm.
  */
-const transformRadix2 = (real, imag) => {
+function transformRadix2(real, imag) {
     // Length variables
     var n = real.length;
     if (n != imag.length)
         throw "Mismatched lengths";
-    if (n == 1)  // Trivial transform
+    if (n == 1) // Trivial transform
         return;
     var levels = -1;
     for (var i = 0; i < 32; i++) {
         if (1 << i == n)
-            levels = i;  // Equal to log2(n)
+            levels = i; // Equal to log2(n)
     }
     if (levels == -1)
         throw "Length is not a power of 2";
-
     // Trigonometric tables
     var cosTable = new Array(n / 2);
     var sinTable = new Array(n / 2);
@@ -4613,7 +4744,6 @@ const transformRadix2 = (real, imag) => {
         cosTable[i] = Math.cos(2 * Math.PI * i / n);
         sinTable[i] = Math.sin(2 * Math.PI * i / n);
     }
-
     // Bit-reversed addressing permutation
     for (var i = 0; i < n; i++) {
         var j = reverseBits(i, levels);
@@ -4626,13 +4756,12 @@ const transformRadix2 = (real, imag) => {
             imag[j] = temp;
         }
     }
-
     // Cooley-Tukey decimation-in-time radix-2 FFT
     for (var size = 2; size <= n; size *= 2) {
         var halfsize = size / 2;
         var tablestep = n / size;
         for (var i = 0; i < n; i += size) {
-            for (var j = i, k = 0; j < i + halfsize; j++ , k += tablestep) {
+            for (var j = i, k = 0; j < i + halfsize; j++, k += tablestep) {
                 var l = j + halfsize;
                 var tpre = real[l] * cosTable[k] + imag[l] * sinTable[k];
                 var tpim = -real[l] * sinTable[k] + imag[l] * cosTable[k];
@@ -4643,25 +4772,22 @@ const transformRadix2 = (real, imag) => {
             }
         }
     }
-
     // Returns the integer whose value is the reverse of the lowest 'bits' bits of the integer 'x'.
-    const reverseBits = (x, bits) => {
+    function reverseBits(x, bits) {
         var y = 0;
         for (var i = 0; i < bits; i++) {
             y = (y << 1) | (x & 1);
             x >>>= 1;
         }
         return y;
-    };
-};
-
-
-/* 
+    }
+}
+/*
  * Computes the discrete Fourier transform (DFT) of the given complex vector, storing the result back into the vector.
  * The vector can have any length. This requires the convolution function, which in turn requires the radix-2 FFT function.
  * Uses Bluestein's chirp z-transform algorithm.
  */
-const transformBluestein = (real, imag) => {
+function transformBluestein(real, imag) {
     // Find a power-of-2 convolution length m such that m >= n * 2 + 1
     var n = real.length;
     if (n != imag.length)
@@ -4669,16 +4795,14 @@ const transformBluestein = (real, imag) => {
     var m = 1;
     while (m < n * 2 + 1)
         m *= 2;
-
     // Trignometric tables
     var cosTable = new Array(n);
     var sinTable = new Array(n);
     for (var i = 0; i < n; i++) {
-        var j = i * i % (n * 2);  // This is more accurate than j = i * i
+        var j = i * i % (n * 2); // This is more accurate than j = i * i
         cosTable[i] = Math.cos(Math.PI * j / n);
         sinTable[i] = Math.sin(Math.PI * j / n);
     }
-
     // Temporary vectors and preprocessing
     var areal = newArrayOfZeros(m);
     var aimag = newArrayOfZeros(m);
@@ -4694,88 +4818,1098 @@ const transformBluestein = (real, imag) => {
         breal[i] = breal[m - i] = cosTable[i];
         bimag[i] = bimag[m - i] = sinTable[i];
     }
-
     // Convolution
     var creal = new Array(m);
     var cimag = new Array(m);
     convolveComplex(areal, aimag, breal, bimag, creal, cimag);
-
     // Postprocessing
     for (var i = 0; i < n; i++) {
         real[i] = creal[i] * cosTable[i] + cimag[i] * sinTable[i];
         imag[i] = -creal[i] * sinTable[i] + cimag[i] * cosTable[i];
     }
-};
-
-
-/* 
- * Computes the circular convolution of the given real vectors. Each vector's length must be the same.
- */
-const convolveReal = (x, y, out) => {
-    var n = x.length;
-    if (n != y.length || n != out.length)
-        throw "Mismatched lengths";
-    convolveComplex(x, newArrayOfZeros(n), y, newArrayOfZeros(n), out, newArrayOfZeros(n));
-};
-
-
-/* 
+}
+/*
  * Computes the circular convolution of the given complex vectors. Each vector's length must be the same.
  */
-const convolveComplex = (xreal, ximag, yreal, yimag, outreal, outimag) => {
+function convolveComplex(xreal, ximag, yreal, yimag, outreal, outimag) {
     var n = xreal.length;
     if (n != ximag.length || n != yreal.length || n != yimag.length
         || n != outreal.length || n != outimag.length)
         throw "Mismatched lengths";
-
     xreal = xreal.slice();
     ximag = ximag.slice();
     yreal = yreal.slice();
     yimag = yimag.slice();
     transform(xreal, ximag);
     transform(yreal, yimag);
-
     for (var i = 0; i < n; i++) {
         var temp = xreal[i] * yreal[i] - ximag[i] * yimag[i];
         ximag[i] = ximag[i] * yreal[i] + xreal[i] * yimag[i];
         xreal[i] = temp;
     }
     inverseTransform(xreal, ximag);
-
-    for (var i = 0; i < n; i++) {  // Scaling (because this FFT implementation omits it)
+    for (var i = 0; i < n; i++) { // Scaling (because this FFT implementation omits it)
         outreal[i] = xreal[i] / n;
         outimag[i] = ximag[i] / n;
     }
-};
-
-
-const newArrayOfZeros = (n) => {
+}
+function newArrayOfZeros(n) {
     var result = [];
     for (var i = 0; i < n; i++)
         result.push(0);
     return result;
+}
+
+const FFT = (real) => (imag) => {
+    const re = [];
+    real.forEach((v, i, a) => {
+        re.push(v);
+    });
+
+    if (!imag) {
+        const im = [];
+        real.forEach((v, i, a) => {
+            im.push(0);
+        });
+        const transformdata = {
+            real: re,
+            imag: im
+        }; 
+        transform(transformdata.real, transformdata.imag);
+        return transformdata;
+    }
+    else {
+        const im = [];
+        if (imag) {
+            imag.forEach((v, i, a) => {
+                im.push(v);
+            });
+        }
+        const transformdata = {
+            real: Object.assign(real, re),
+            imag: Object.assign(real, im)
+        };
+        transform(transformdata.real, transformdata.imag);
+        return transformdata;
+    }
 };
 
-const FFT = { transform, inverseTransform, transformRadix2, transformBluestein, convolveReal, convolveComplex, newArrayOfZeros };
+const IFFT = real => imag => {
+        const re = [];
+        real.forEach((v, i, a) => {
+            re.push(v);
+        });
+        if (!imag) {
+            const im = [];
+            real.forEach((v, i, a) => {
+                im.push(0);
+            });
+            const transformdata = {
+                real: re,
+                imag: im
+            };
+            inverseTransform(transformdata.real, transformdata.imag);
+            return transformdata;
+        } else {
+            const im = [];
+            if (imag) {
+                imag.forEach((v, i, a) => {
+                    im.push(v);
+                });
+            }
+            const transformdata = {
+                real: Object.assign(real, re),
+                imag: Object.assign(real, im)
+            };
+            inverseTransform(transformdata.real, transformdata.imag);
+            return transformdata;
+        }
+};
 
 const RMS = (samples) => Math.sqrt(samples.map(p => p * p).reduce((a, b) => a + b) / samples.length);
 
-const AC = {
-  Weight: Weight,
-  Conversion: Conversion,
-  Bands: Bands,
-  dBsum: dBsum,
-  Transmission: Transmission,
-  Properties: Properties,
-  RoomModes: RoomModes,
-  Constants: constants,
-  Measurement: Measurement,
-  Types: Types,
-  FFT: FFT,
-  RT: RT,
-  Buffer: buffer,
-  RMS: RMS,
-  units: units
+const Energy = {
+
+    /** Energy Density Calculation
+     * Architectural Acoustics pg. 64 'Energy Density' Marshal Long, Second Edition
+     * 
+     * @param  {Number} E Energy Contained in a Sound Wave
+     * @param  {Number} S Measurement Area
+     * @param  {Number} c Speed of Sound
+     * @param  {Number} t Time
+     * @param  {Number} W Power
+     * @param  {Number} I Intensity
+     * @param  {Number} p Pressure
+     * @param  {Number} rho Bulk Density of Medium
+     */
+    Density: ({ E, S, c, t, W, I, p, rho, help } = {}) => {
+        if (E && S && c && t) {
+            console.log(1);
+            return E / (S * c * t);
+        }
+        else if (W && S && c) {
+            console.log(2);
+            return W / (S * c);
+        }
+        else if (I && c) {
+            console.log(3);
+            return (I / c);
+        }
+        else if (p && rho && c) {
+            console.log(4);
+            return (p * p) / (rho * c * c);
+        }
+        else if (help) {
+            console.log(
+                `/** Energy Density Calculation
+                 * Architectural Acoustics pg. 64 'Energy Density' Marshal Long, Second Edition
+                 * 
+                 * @param  {Number} E Energy Contained in a Sound Wave
+                 * @param  {Number} S Measurement Area
+                 * @param  {Number} c Speed of Sound
+                 * @param  {Number} t Time
+                 * @param  {Number} W Power
+                 * @param  {Number} I Intensity
+                 * @param  {Number} p Pressure
+                 * @param  {Number} rho Bulk Density of Medium
+                 */`
+            );
+        }
+        else throw 'Not enough input parameters given';
+    }
 };
 
-export default AC;
+/**
+ * @function p2dB Converts Sound Pressure in (Pa) to Sound Pressure Level in (dB)
+ * @param  {Number|Number[]} p Sound Pressure
+ * @param  {String} [units] Units for the result
+ */
+function p2dB({ p, units } = {}) {
+    if (p) {
+        if (units) {
+            if (Number.isFinite(p)) {
+                return 20 * Math.log10(lib(p).from(units).to('Pa') / pref.value);
+            } else if (p instanceof Array) {
+                return p.map(x => 20 * Math.log10(lib(x).from(units).to('Pa') / pref.value));
+            } else {
+                throw "p needs to be a number or an array"
+            }
+        } else {
+            if (Number.isFinite(p)) {
+                return 20 * Math.log10(p / pref.value);
+            } else if (p instanceof Array) {
+                return p.map(x => 20 * Math.log10(x/ pref.value));
+            } else {
+                throw "p needs to be a number or an array"
+            }
+        }
+    }
+}
+
+
+/**
+ * @function dB2p Converts Sound Pressure Level(Lp) in dB to Sound Pressure in (Pa)
+ * @param  {Number|Number[]} dB Sound Pressure Level
+ * @param  {String} [units] Units for the result
+ */
+function dB2p({ dB, units } = {}) {
+    if (dB) {
+        if (units) {
+            if (Number.isFinite(dB)) {
+                return Math.pow(10,dB/20) * lib(pref.value).from('Pa').to(units);
+            } else if (dB instanceof Array) {
+                return dB.map(x => Math.pow(10, x / 20) * lib(pref.value).from('Pa').to(units));
+            } else {
+                throw "dB needs to be a number or an array"
+            }
+        } else {
+            if (Number.isFinite(dB)) {
+                return Math.pow(10, dB / 20) * pref.value;
+            } else if (dB instanceof Array) {
+                return dB.map(x => Math.pow(10, x / 20) *  pref.value);
+            } else {
+                throw "dB needs to be a number or an array"
+            }
+        }
+    }
+}
+
+/**
+ * @function I2dB Converts Sound Intensity in (W) to Sound Intensity Level in (dB)
+ * @param  {Number|Number[]} I Sound Intensity 
+ * @param  {String} [units] Units for the result 
+ */
+function I2dB({ I, units } = {}) {
+    if (I) {
+        if (units) {
+            if (Number.isFinite(I)) {
+                return 10 * Math.log10(lib(I).from(units).to('W/m2') / Iref.value);
+            } else if (I instanceof Array) {
+                return I.map(x => 10 * Math.log10(lib(x).from(units).to('W/m2') / Iref.value));
+            } else {
+                throw "I needs to be a number or an array"
+            }
+        } else {
+            if (Number.isFinite(I)) {
+                return 10 * Math.log10(I / Iref.value);
+            } else if (I instanceof Array) {
+                return I.map(x => 10 * Math.log10(x / Iref.value));
+            } else {
+                throw "I needs to be a number or an array"
+            }
+        }
+    }
+}
+
+
+/**
+ * @function dB2I Converts Sound Intensity Level (LI) in dB to Sound Power in (W)
+ * @param  {Number|Number[]} dB Sound Intensity Level
+ * @param  {String} [units] Units for the result
+ */
+function dB2I({ dB, units } = {}) {
+    if (dB) {
+        if (units) {
+            if (Number.isFinite(dB)) {
+                return Math.pow(10, dB / 10) * lib(Iref.value).from('W/m2').to(units);
+            } else if (dB instanceof Array) {
+                return dB.map(x => Math.pow(10, x / 10) * lib(Iref.value).from('W/m2').to(units));
+            } else {
+                throw "dB needs to be a number or an array"
+            }
+        } else {
+            if (Number.isFinite(dB)) {
+                return Math.pow(10, dB / 10) * Iref.value;
+            } else if (dB instanceof Array) {
+                return dB.map(x => Math.pow(10, x / 10) * Iref.value);
+            } else {
+                throw "dB needs to be a number or an array"
+            }
+        }
+    }
+}
+
+/**
+ * @function W2dB Converts Sound Power in (W) to Sound Power Level(Lw) in dB
+ * @param  {Number|Number[]} W Sound Power
+ * @param  {String} [units] Units for the result
+ */
+function W2dB({ W, units } = {}) {
+    if (W) {
+        if (units) {
+            if (Number.isFinite(W)) {
+                return 10 * Math.log10(lib(W).from(units).to('W') / Wref.value);
+            } else if (W instanceof Array) {
+                return W.map(x => 10 * Math.log10(lib(x).from(units).to('W') / Wref.value));
+            } else {
+                throw "W needs to be a number or an array"
+            }
+        } else {
+            if (Number.isFinite(W)) {
+                return 10 * Math.log10(W / Iref.value);
+            } else if (W instanceof Array) {
+                return W.map(x => 10 * Math.log10(x / Wref.value));
+            } else {
+                throw "W needs to be a number or an array"
+            }
+        }
+    }
+}
+
+/**
+ * @function dB2W Converts Sound Power Level (Lw) in dB to Sound Power in (W)
+ * @param  {Number|Number[]} dB Sound Power Level
+ * @param  {String} [units] Units for the result
+ */
+function dB2W({ dB, units } = {}) {
+    if (dB) {
+        if (units) {
+            if (Number.isFinite(dB)) {
+                return Math.pow(10, dB / 10) * lib(Wref.value).from('W').to(units);
+            } else if (dB instanceof Array) {
+                return dB.map(x => Math.pow(10, x / 10) * lib(Wref.value).from('W').to(units));
+            } else {
+                throw "dB needs to be a number or an array"
+            }
+        } else {
+            if (Number.isFinite(dB)) {
+                return Math.pow(10, dB / 10) * Wref.value;
+            } else if (dB instanceof Array) {
+                return dB.map(x => Math.pow(10, x / 10) * Wref.value);
+            } else {
+                throw "dB needs to be a number or an array"
+            }
+        }
+    }
+}
+
+/** Determination of sound power levels of noise sources using sound intensity by scanning
+ * @param  {Number[]} freq Array of frequencies 
+ * @param  {Object[]} surfaces Array of objects with members SurfaceArea: Number and SoundIntensityLevel: Number[]
+ */
+function SoundPowerScan({ frequency, surfaceData } = {}) {
+    let sum = Array(frequency.length).fill(0);
+    surfaceData.forEach((surface, index, arr) => {
+        arr[index].SoundIntensity = dB2I({
+            dB: surface.SoundIntensityLevel
+        });
+        arr[index].SoundPower = arr[index].SoundIntensity.map(x => x * surface.SurfaceArea);
+        arr[index].SoundPower.forEach((s, i) => {
+            sum[i] += s;
+        });
+    });
+    let SoundPowerLevel = W2dB({
+        W: sum
+    });
+
+    return SoundPowerLevel;
+}
+
+/** Calcualtes the electrical power required by an amplifier
+ * Marshal Long pg. 689
+ * @param  {Number} channels - number of amplifier channels (assuming 2 channels per amplifier)
+ * @param  {Number} J - rated amplifier output power for one channel in Watts
+ * @param  {Number} duty - duty cycle
+ * @param  {Number} efficieny - amplifier efficiency
+ * @param  {Number} Jq - quiescent power for zero input voltage (defaults to 90W)
+ */
+function PowerDemand({ channels, J, duty, efficieny, Jq }) {
+    return channels * j * duty * (1 / efficieny) + channels * (Jq||90) * (1 / 2);
+}
+
+/** Calculates the electrical current from the AC Main (A)
+ * @param  {Number} Je - Power Demand
+ * @param  {Number} Ve - electrical voltage from the AC Main (V)
+ * @param  {Number} f - Power factor (defaults to 0.83)
+ */
+function CurrentDemand({ Je, Ve, f }) {
+    return Je / (Ve * (f || 0.83));
+}
+
+const hann = (n, N) => Math.pow(Math.sin(Math.PI * n / (N-1)), 2);
+
+function Hann(N) {
+    return Object.keys(Array(N).fill(0)).map(x => hann(Number(x), N));
+}
+
+const readTextFile = ({ element, loaded, error } = {}) => {
+    const reader = new FileReader();
+    reader.onload = event => loaded(event.target.result);
+    reader.onerror = err => error(err);
+    reader.readAsText(element.files[0]);
+};
+
+/**
+ * @function sum - Calculates the sum of a number array;
+ * @param  {Number[]} arr - Array of numbers;
+ * @returns {Number} - Returns the sum of a number array
+ */
+const sum = arr => arr.reduce((a, b) => a + b);
+
+/**
+ * From https://stackoverflow.com/questions/1406029/how-to-calculate-the-volume-of-a-3d-mesh-object-the-surface-of-which-is-made-up
+ * 
+ * Read this paper http://chenlab.ece.cornell.edu/Publication/Cha/icip01_Cha.pdf
+ * The trick is to calculate the signed volume of a tetrahedron -
+ * based on your triangle and topped off at the origin.
+ * The sign of the volume comes from whether your triangle is 
+ * pointing in the direction of the origin. (The normal 
+ * of the triangle is itself dependent upon the order of your 
+ * vertices, which is why you don 't see it explicitly referenced below.)
+ * 
+ * @function triangleVolume - Calculates the signed volume of a triangle for 3D mesh calc
+ * @param  {Object|Vector} p1 - Vector p1 containing components x,y,z;
+ * @param  {Object|Vector} p2 - Vector p1 containing components x,y,z;
+ * @param  {Object|Vector} p3 - Vector p1 containing components x,y,z;
+ * @returns {Number} - Returns signed volume of a triangle
+ */
+const triangleVolume = (p1, p2, p3) => {
+    const v321 = p3.x * p2.y * p1.z;
+    const v231 = p2.x * p3.y * p1.z;
+    const v312 = p3.x * p1.y * p2.z;
+    const v132 = p1.x * p3.y * p2.z;
+    const v213 = p2.x * p1.y * p3.z;
+    const v123 = p1.x * p2.y * p3.z;
+    return (1.0 / 6.0 ) * (-v321 + v231 + v312 - v132 - v213 + v123);
+};
+/**
+ * @function meshVolume - Calculates the volume of a mesh of triangles
+ * @param  {Object[]} mesh - Array of triangles of the form [ {x,y,z}, {x,y,z}, {x,y,z} ]
+ */
+const meshVolume = (triangles) => {
+    
+    const vols = triangles.map(tri => triangleVolume(...Object.keys(tri).map(u => tri[u])));
+    return Math.abs(sum(vols));
+
+};
+
+var _createClass = function () {
+    function defineProperties(target, props) {
+        for (var i = 0; i < props.length; i++) {
+            var descriptor = props[i];
+            descriptor.enumerable = descriptor.enumerable || false;
+            descriptor.configurable = true;
+            if ("value" in descriptor) descriptor.writable = true;
+            Object.defineProperty(target, descriptor.key, descriptor);
+        }
+    }
+    return function (Constructor, protoProps, staticProps) {
+        if (protoProps) defineProperties(Constructor.prototype, protoProps);
+        if (staticProps) defineProperties(Constructor, staticProps);
+        return Constructor;
+    };
+}();
+
+function _classCallCheck(instance, Constructor) {
+    if (!(instance instanceof Constructor)) {
+        throw new TypeError("Cannot call a class as a function");
+    }
+}
+
+var OBJFile = function () {
+    function OBJFile(fileContents, defaultModelName) {
+        _classCallCheck(this, OBJFile);
+
+        this._reset();
+        this.fileContents = fileContents;
+        this.defaultModelName = defaultModelName || 'untitled';
+    }
+
+    _createClass(OBJFile, [{
+        key: '_reset',
+        value: function _reset() {
+            this.result = {
+                models: [],
+                materialLibraries: []
+            };
+            this.currentMaterial = '';
+            this.currentGroup = '';
+            this.smoothingGroup = 0;
+        }
+    }, {
+        key: 'parse',
+        value: function parse() {
+            this._reset();
+
+            var _stripComments = function _stripComments(lineString) {
+                var commentIndex = lineString.indexOf('#');
+                if (commentIndex > -1) {
+                    return lineString.substring(0, commentIndex);
+                }
+                return lineString;
+            };
+
+            var lines = this.fileContents.split('\n');
+            for (var i = 0; i < lines.length; i += 1) {
+                var line = _stripComments(lines[i]);
+
+                var lineItems = line.replace(/\s\s+/g, ' ').trim().split(' ');
+
+                switch (lineItems[0].toLowerCase()) {
+                    case 'o':
+                        // Start A New Model
+                        this._parseObject(lineItems);
+                        break;
+                    case 'g':
+                        // Start a new polygon group
+                        this._parseGroup(lineItems);
+                        break;
+                    case 'v':
+                        // Define a vertex for the current model
+                        this._parseVertexCoords(lineItems);
+                        break;
+                    case 'vt':
+                        // Texture Coords
+                        this._parseTextureCoords(lineItems);
+                        break;
+                    case 'vn':
+                        // Define a vertex normal for the current model
+                        this._parseVertexNormal(lineItems);
+                        break;
+                    case 's':
+                        // Smooth shading statement
+                        this._parseSmoothShadingStatement(lineItems);
+                        break;
+                    case 'f':
+                        // Define a Face/Polygon
+                        this._parsePolygon(lineItems);
+                        break;
+                    case 'mtllib':
+                        // Reference to a material library file (.mtl)
+                        this._parseMtlLib(lineItems);
+                        break;
+                    case 'usemtl':
+                        // Sets the current material to be applied to polygons defined from this point forward
+                        this._parseUseMtl(lineItems);
+                        break;
+                }
+            }
+            this.result.vertices = [
+                {
+                    x: 0,
+                    y: 0,
+                    z: 0
+                }].concat(
+                    this.result.models
+                        .map(x => x.vertices)
+                        .flat()
+                ).map(x => {
+                    return new Vector(x.x, x.y, x.z);
+                });
+            
+            const tempVerts = this.result.vertices;
+
+            this.result.models.forEach((x,i,a) => {
+                let sum = 0;
+                a[i].faces.forEach((f, j, b) => {
+                    b[j].verts = f.vertices.map(v => tempVerts[v.vertexIndex]);
+                    b[j].area = triangleArea(b[j].verts[0], b[j].verts[1], b[j].verts[2]);
+                    b[j].triangle = [b[j].verts[0], b[j].verts[1], b[j].verts[2]];
+                    sum += b[j].area;
+                });
+                a[i].surfaceArea = sum;
+            });
+
+            this.result.surfaceArea = this.result.models.map(x => x.surfaceArea).reduce((a, b) => a + b);
+            this.result.volume = meshVolume(this.result.models.map(x => x.faces.map(f => f.triangle)).flat());
+            
+            return this.result;
+        }
+    }, {
+        key: '_currentModel',
+        value: function _currentModel() {
+            if (this.result.models.length == 0) {
+                this.result.models.push({
+                    name: this.defaultModelName,
+                    vertices: [],
+                    textureCoords: [],
+                    vertexNormals: [],
+                    faces: []
+                });
+                this.currentGroup = '';
+                this.smoothingGroup = 0;
+            }
+
+            return this.result.models[this.result.models.length - 1];
+        }
+    }, {
+        key: '_parseObject',
+        value: function _parseObject(lineItems) {
+            var modelName = lineItems.length >= 2 ? lineItems[1] : this._getDefaultModelName();
+            this.result.models.push({
+                name: modelName,
+                vertices: [],
+                textureCoords: [],
+                vertexNormals: [],
+                faces: []
+            });
+            this.currentGroup = '';
+            this.smoothingGroup = 0;
+        }
+    }, {
+        key: '_parseGroup',
+        value: function _parseGroup(lineItems) {
+            if (lineItems.length != 2) {
+                throw 'Group statements must have exactly 1 argument (eg. g group_1)';
+            }
+
+            this.currentGroup = lineItems[1];
+        }
+    }, {
+        key: '_parseVertexCoords',
+        value: function _parseVertexCoords(lineItems) {
+            var x = lineItems.length >= 2 ? parseFloat(lineItems[1]) : 0.0;
+            var y = lineItems.length >= 3 ? parseFloat(lineItems[2]) : 0.0;
+            var z = lineItems.length >= 4 ? parseFloat(lineItems[3]) : 0.0;
+
+            this._currentModel().vertices.push({
+                x: x,
+                y: y,
+                z: z
+            });
+        }
+    }, {
+        key: '_parseTextureCoords',
+        value: function _parseTextureCoords(lineItems) {
+            var u = lineItems.length >= 2 ? parseFloat(lineItems[1]) : 0.0;
+            var v = lineItems.length >= 3 ? parseFloat(lineItems[2]) : 0.0;
+            var w = lineItems.length >= 4 ? parseFloat(lineItems[3]) : 0.0;
+
+            this._currentModel().textureCoords.push({
+                u: u,
+                v: v,
+                w: w
+            });
+        }
+    }, {
+        key: '_parseVertexNormal',
+        value: function _parseVertexNormal(lineItems) {
+            var x = lineItems.length >= 2 ? parseFloat(lineItems[1]) : 0.0;
+            var y = lineItems.length >= 3 ? parseFloat(lineItems[2]) : 0.0;
+            var z = lineItems.length >= 4 ? parseFloat(lineItems[3]) : 0.0;
+
+            this._currentModel().vertexNormals.push({
+                x: x,
+                y: y,
+                z: z
+            });
+        }
+    }, {
+        key: '_parsePolygon',
+        value: function _parsePolygon(lineItems) {
+            var totalVertices = lineItems.length - 1;
+            if (totalVertices < 3) {
+                throw 'Face statement has less than 3 vertices' + this.filePath + this.lineNumber;
+            }
+
+            var face = {
+                material: this.currentMaterial,
+                group: this.currentGroup,
+                smoothingGroup: this.smoothingGroup,
+                vertices: []
+            };
+
+            for (var i = 0; i < totalVertices; i += 1) {
+                var vertexString = lineItems[i + 1];
+                var vertexValues = vertexString.split('/');
+
+                if (vertexValues.length < 1 || vertexValues.length > 3) {
+                    throw 'Two many values (separated by /) for a single vertex' + this.filePath + this.lineNumber;
+                }
+
+                var vertexIndex = 0;
+                var textureCoordsIndex = 0;
+                var vertexNormalIndex = 0;
+                vertexIndex = parseInt(vertexValues[0]);
+                if (vertexValues.length > 1 && !vertexValues[1] == '') {
+                    textureCoordsIndex = parseInt(vertexValues[1]);
+                }
+                if (vertexValues.length > 2) {
+                    vertexNormalIndex = parseInt(vertexValues[2]);
+                }
+
+                if (vertexIndex == 0) {
+                    throw 'Faces uses invalid vertex index of 0';
+                }
+
+                // Negative vertex indices refer to the nth last defined vertex
+                // convert these to postive indices for simplicity
+                if (vertexIndex < 0) {
+                    vertexIndex = this._currentModel().vertices.length + 1 + vertexIndex;
+                }
+
+                face.vertices.push({
+                    vertexIndex: vertexIndex,
+                    textureCoordsIndex: textureCoordsIndex,
+                    vertexNormalIndex: vertexNormalIndex
+                });
+            }
+            this._currentModel().faces.push(face);
+        }
+    }, {
+        key: '_parseMtlLib',
+        value: function _parseMtlLib(lineItems) {
+            if (lineItems.length >= 2) {
+                this.result.materialLibraries.push(lineItems[1]);
+            }
+        }
+    }, {
+        key: '_parseUseMtl',
+        value: function _parseUseMtl(lineItems) {
+            if (lineItems.length >= 2) {
+                this.currentMaterial = lineItems[1];
+            }
+        }
+    }, {
+        key: '_parseSmoothShadingStatement',
+        value: function _parseSmoothShadingStatement(lineItems) {
+            if (lineItems.length != 2) {
+                throw 'Smoothing group statements must have exactly 1 argument (eg. s <number|off>)';
+            }
+
+            var groupNumber = lineItems[1].toLowerCase() == 'off' ? 0 : parseInt(lineItems[1]);
+            this.smoothingGroup = groupNumber;
+        }
+    }]);
+
+    return OBJFile;
+}();
+
+// module.exports = OBJFile;
+
+
+const ParseOBJ = (obj) => new OBJFile(obj).parse();
+const ParseOBJ_dom = ({ element, loaded, error } = {}) => {
+    readTextFile({
+        element,
+        loaded: e => {
+            loaded(new OBJFile(e).parse());
+        },
+        error
+    });
+};
+
+/** Calculates air attenuation
+ * ANSI Standard S1-26:1995, or ISO 9613-1:1996. 
+ * @see https://www.mne.psu.edu/lamancusa/me458/10_osp.pdf
+ * 
+ * @param  {Number|Number[]} frequency - frequency (or frequencies) to evaluate at
+ * @param  {Number} [temperature] - Temperature (defaults to 70F)
+ * @param  {String} [temperatureUnits] - units for the input temperature (defaults to F)
+ * @param  {Number} [humidity] - relative humidity as a percentage (defaults to 50)
+ * @param  {Number} [pressure] - atmospheric pressure in atm
+ * @param  {String} [attenuationUnits] - either "ft" or "m" (defaults to ft);
+ * @returns {Number|Number[]} air attenuation in dB/(ft or m);
+ */
+function airAttenuation({
+    frequency,
+    temperature,
+    temperatureUnits,
+    humidity,
+    pressure,
+    attenuationUnits
+}) {
+    humidity = humidity || 40;
+    attenuationUnits = attenuationUnits || "ft";
+    temperature = temperature || 68;
+    temperatureUnits = temperatureUnits || "F";
+    temperature = AC.units.convert(temperature).from(temperatureUnits).to('K');
+
+    const _airAttenuation = (f) => {
+        let C_humid = 4.6151 - 6.8346 * Math.pow((273.15 / temperature), 1.261);
+        let hum = humidity * Math.pow(10, C_humid);
+
+        let f2 = f * f;
+        let coef1 = 869 * f2;
+        let trel = temperature / 293.15;
+        let f_relax_oxygen = (24 + 4.04e4 * hum * (0.02 + hum) / (0.391 + hum));
+        let f_relax_nitrogen = Math.pow(trel, -0.5) * (9 + 280 * hum * Math.exp(-4.17 * (Math.pow(trel, -1 / 3) - 1)));
+
+        let denominator_oxygen = f_relax_oxygen + f2 / f_relax_oxygen;
+        let denominator_nitrogen = f_relax_nitrogen + f2 / f_relax_nitrogen;
+
+        let root_relativeTemp = Math.sqrt(trel);
+        let eq_coef = Math.pow(trel, -2.5);
+        let eq_oxygen = 0.01275 * Math.exp(-2239.1 / temperature) / denominator_oxygen;
+        let eq_nitrogen = 0.10680 * Math.exp(-3352.0 / temperature) / denominator_nitrogen;
+
+        let alpha = 0.001 * coef1 * (1.84e-11 * root_relativeTemp + eq_coef * (eq_oxygen + eq_nitrogen));
+
+        if (attenuationUnits === "ft") {
+            alpha = alpha / 3.28;
+        }
+
+
+        return alpha;
+    };
+
+    if (frequency instanceof Array) {
+        return frequency.map(f => _airAttenuation(f));
+    } else if (Number.isFinite(frequency)) {
+        return _airAttenuation(frequency);
+    }
+}
+
+class RT {
+    constructor({
+        surfaces,
+        volume,
+        units,
+        frequency
+    } = {}) {
+        this.surfaces = surfaces || [];
+        this.units = units || "m";
+        this.volume = volume || undefined;
+        this.setFrequency(frequency || Bands.Octave.fromRange(125, 4000));
+        this.resolveUnitConstant();
+        this.resolveSurfaceArea();
+        this.resolveRelations();
+    }
+    addSurface(surface) {
+        if (surface instanceof Surface) {
+            this.surfaces.push(surface);
+            this.resolveSurfaceArea();
+            this.resolveRelations();
+        }
+        return this;
+    }
+    setFrequency(frequency) {
+        this.frequency = frequency;
+        this.setAirAbsorption(airAttenuation({
+            frequency: frequency
+        }));
+        return this;
+    }
+    setVolume(volume) {
+        this.volume = volume;
+        return this;
+    }
+    setUnits(units) {
+        this.units = units;
+        this.resolveUnitConstant();
+        return this;
+    }
+    setAirAbsorption(m) {
+        this.AirAbsorption = m;
+        return this;
+    }
+    resolveUnitConstant() {
+        switch (this.units) {
+            case "ft":
+                this.unitConstant = 0.049;
+                break;
+            case "m":
+                this.unitConstant = 0.161;
+                break;
+            default:
+                break;
+        }
+    }
+    resolveRelations() {
+        if (this.surfaces.length > 0) {
+            this.varIndices = this.surfaces.map((x, i) => x.isVar ? i : null).filter(x => x !== null);
+        }
+    }
+    resolveSurfaceArea() {
+        if (this.surfaces.length > 0) {
+            this.surfaceArea = this.surfaces.map(x => x.modifiedSurfaceArea).reduce((a, b) => a + b);
+        }
+    }
+    getSurfaceByName(name) {
+        return this.surfaces.filter(x => x.name === name)[0];
+    }
+    calculateRT() {
+        let num = this.unitConstant * this.volume;
+        if (this.frequency) {
+            if (this.frequency instanceof Array) {
+                let sum = Array(this.frequency.length).fill(0);
+                this.surfaces.forEach(s => {
+                    s.sabins.forEach((m, i) => {
+                        sum[i] += m;
+                    });
+                });
+                this.absorption = sum;
+                this.meanAlpha = sum.map(x => x / this.surfaceArea);
+                this.T60 = this.meanAlpha.map((x, i, a) => {
+                    if (x < 0.2) {
+                        return num / (this.surfaceArea * x + (4 * (this.AirAbsorption[i] || 0) * this.volume));
+                    } else {
+                        return num / (-this.surfaceArea * Math.log(1 - x) + (4 * (this.AirAbsorption[i] || 0) * this.volume));
+                    }
+                });
+                console.log(this.T60);
+            }
+        }
+    }
+
+}
+
+class RTOptimizer extends RT {
+    constructor(props) {
+        super(props);
+
+    }
+    setStepSize(stepSize) {
+        this.stepSize = stepSize;
+        return this;
+    }
+    setIterRate(iterRate) {
+        this.iterRate = iterRate;
+        return this;
+    }
+    setGoal(goal) {
+        this.goal = goal;
+        this.goalprime = [];
+        for (let i = 0; i < this.goal.length - 1; i++) {
+            this.goalprime.push(this.goal[i + 1] - this.goal[i]);
+        }
+
+        return this;
+    }
+    setIterCount(iterCount) {
+        this.iterCount = iterCount;
+        return this;
+    }
+    calculateMSE(shouldSetMSE, t60, goal) {
+        let error = t60.map((t, i) => goal[i] - t);
+        let mse = error.map(e => e * e).reduce((a, b) => a + b) / error.length;
+        if (shouldSetMSE) this.MSE = mse;
+        return mse;
+    }
+    calculateMSEQuiet(arr1, arr2) {
+        let error = arr1.map((t, i) => arr2[i] - t);
+        let mse = error.map(e => e * e).reduce((a, b) => a + b) / error.length;
+        return mse;
+    }
+    calculateRT(shouldSetT60) {
+        this.resolveSurfaceArea();
+        let num = this.unitConstant * this.volume;
+        if (this.frequency) {
+            if (this.frequency instanceof Array) {
+                let sum = Array(this.frequency.length).fill(0);
+                this.surfaces.forEach(s => {
+                    //s.resolveSabins();
+                    s.materialCoefficients.forEach((m, i) => {
+                        sum[i] += m * s.modifiedSurfaceArea;
+                    });
+                });
+                this.absorption = sum;
+                this.meanAlpha = sum.map(x => x / this.surfaceArea);
+                let t60 = this.meanAlpha.map((x, i, a) => {
+                    if (x < 0.2) {
+                        return num / (this.surfaceArea * x + (4 * (this.AirAbsorption[i] || 0) * this.volume));
+                    } else {
+                        return num / (-this.surfaceArea * Math.log(1 - x) + (4 * (this.AirAbsorption[i] || 0) * this.volume));
+                    }
+                });
+                if (shouldSetT60) {
+                    this.T60 = t60;
+                    this.T60Prime = this.calculateRTPrime(this.T60);
+                }                return t60;
+            }
+        }
+    }
+    calculateRTPrime(rt) {
+        let rtprime = [];
+        for (let i = 0; i < rt.length - 1; i++) {
+            rtprime.push(rt[i + 1] - rt[i]);
+        }
+        return rtprime;
+    }
+    optimize(N, timeout = 0) {
+        Array(N).fill(0).forEach(x => {
+            let mse = this.calculateMSE(true, this.T60, this.goal);
+
+            let tempt60prime;
+            let tempMSE;
+            for (let i = 0; i < this.surfaces.length; i++) {
+                if (this.surfaces[i].children.length > 0) {
+                    for (let j = 0; j < this.surfaces[i].children.length; j++) {
+                        this.surfaces[i].children[j].modifiedSurfaceArea = clamp(this.surfaces[i].children[j].modifiedSurfaceArea + this.stepSize, 0, this.surfaces[i].surfaceArea);
+                        this.surfaces[i].modifiedSurfaceArea = clamp(this.surfaces[i].modifiedSurfaceArea - this.stepSize, 0, this.surfaces[i].surfaceArea);
+                        tempt60prime = this.calculateRTPrime(this.calculateRT(false));
+                        tempMSE = this.calculateMSEQuiet(tempt60prime, this.goalprime);
+
+                        if (tempMSE > mse) {
+                            this.surfaces[i].children[j].modifiedSurfaceArea = clamp(this.surfaces[i].children[j].modifiedSurfaceArea - 2 * this.stepSize, 0, this.surfaces[i].surfaceArea);
+                            this.surfaces[i].modifiedSurfaceArea = clamp(this.surfaces[i].modifiedSurfaceArea + 2 * this.stepSize, 0, this.surfaces[i].surfaceArea);
+                            tempt60prime = this.calculateRTPrime(this.calculateRT(false));
+                            tempMSE = this.calculateMSEQuiet(tempt60prime, this.goalprime);
+                            if (tempMSE > mse) {
+                                this.surfaces[i].children[j].modifiedSurfaceArea = clamp(this.surfaces[i].children[j].modifiedSurfaceArea + this.stepSize, 0, this.surfaces[i].surfaceArea);
+                                this.surfaces[i].modifiedSurfaceArea = clamp(this.surfaces[i].modifiedSurfaceArea - this.stepSize, 0, this.surfaces[i].surfaceArea);
+                                tempt60prime = this.calculateRTPrime(this.calculateRT(false));
+                                tempMSE = this.calculateMSEQuiet(tempt60prime, this.goalprime);
+                            }
+                        }
+                        this.T60Prime = tempt60prime;
+                        mse = tempMSE;
+
+                    }
+                }
+            }
+            console.log(this.surfaces[1].modifiedSurfaceArea, this.surfaces[7].modifiedSurfaceArea);
+
+
+        });
+        console.log(this.surfaces);
+    }
+    optimizePrime(N) {
+        Array(N).fill(0).forEach(x => {
+
+            let mse = this.calculateMSEQuiet(this.T60Prime, this.goalprime);
+
+            let tempt60prime;
+            let tempMSE;
+            for (let i = 0; i < this.surfaces.length; i++) {
+                if (this.surfaces[i].children.length > 0) {
+                    for (let j = 0; j < this.surfaces[i].children.length; j++) {
+                        var tempChildSA = clamp(this.surfaces[i].children[j].modifiedSurfaceArea + this.stepSize, 0, this.surfaces[i].surfaceArea);
+                        var tempParentSA = clamp(this.surfaces[i].modifiedSurfaceArea - this.stepSize, 0, this.surfaces[i].surfaceArea);
+                        if (tempChildSA + tempParentSA == this.surfaces[i].children[j].surfaceArea + this.surfaces[i].surfaceArea) {
+                            this.surfaces[i].children[j].modifiedSurfaceArea = tempChildSA;
+                            this.surfaces[i].modifiedSurfaceArea = tempParentSA;
+
+                        }
+                        tempt60prime = this.calculateRT(false);
+                        tempMSE = this.calculateMSE(false, tempt60prime, this.goal);
+
+                        if (tempMSE > mse) {
+                            tempChildSA = clamp(this.surfaces[i].children[j].modifiedSurfaceArea - 2 * this.stepSize, 0, this.surfaces[i].surfaceArea);
+                            tempParentSA = clamp(this.surfaces[i].modifiedSurfaceArea + 2 * this.stepSize, 0, this.surfaces[i].surfaceArea);
+                            if (tempChildSA + tempParentSA == this.surfaces[i].children[j].surfaceArea + this.surfaces[i].surfaceArea) {
+                                this.surfaces[i].children[j].modifiedSurfaceArea = tempChildSA;
+                                this.surfaces[i].modifiedSurfaceArea = tempParentSA;
+
+                            }
+                            tempt60prime = this.calculateRT(false);
+                            tempMSE = this.calculateMSE(false, tempt60prime, this.goal);
+                            if (tempMSE > mse) {
+                                var tempChildSA = clamp(this.surfaces[i].children[j].modifiedSurfaceArea + this.stepSize, 0, this.surfaces[i].surfaceArea);
+                                var tempParentSA = clamp(this.surfaces[i].modifiedSurfaceArea - this.stepSize, 0, this.surfaces[i].surfaceArea);
+                                if (tempChildSA + tempParentSA == this.surfaces[i].children[j].surfaceArea + this.surfaces[i].surfaceArea) {
+                                    this.surfaces[i].children[j].modifiedSurfaceArea = tempChildSA;
+                                    this.surfaces[i].modifiedSurfaceArea = tempParentSA;
+
+                                }
+                                tempt60prime = this.calculateRT(false);
+                                tempMSE = this.calculateMSE(false, tempt60prime, this.goal);
+                            }
+                        }
+                        this.T60 = tempt60prime;
+                        mse = tempMSE;
+                        this.surfaces[i].children[j].delta = this.surfaces[i].children[j].modifiedSurfaceArea - this.surfaces[i].children[j].surfaceArea;
+                        this.surfaces[i].delta = this.surfaces[i].modifiedSurfaceArea - this.surfaces[i].surfaceArea;
+                    }
+                }
+            }
+            // console.log(this.surfaces[1].modifiedSurfaceArea+this.surfaces[7].modifiedSurfaceArea);
+        });
+        console.log(this.surfaces.map(x => x.delta).filter(x => typeof x !== "undefined"));
+
+    }
+}
+
+var functionalAcoustics = {
+  Weight,
+  Conversion,
+  Bands,
+  dBsum,
+  Transmission,
+  Properties,
+  RoomModes,
+  pref,
+  Wref,
+  Iref,
+  Measurement,
+  Types,
+  FFT,
+  IFFT,
+  RT,
+  RTOptimizer,
+  Surface,
+  Buffer: buffer,
+  RMS,
+  units,
+  Complex,
+  Signal,
+  Energy,
+  p2dB,
+  dB2p,
+  I2dB,
+  dB2I,
+  W2dB,
+  dB2W,
+  SoundPowerScan,
+  round,
+  Hann,
+  PowerDemand,
+  CurrentDemand,
+  readTextFile,
+  ParseOBJ,
+  ParseOBJ_dom,
+  Vector,
+  airAttenuation
+};
+
+export default functionalAcoustics;

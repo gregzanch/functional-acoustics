@@ -1,0 +1,40 @@
+  .chartdata {
+      fill: none;
+      stroke: rgba(0, 162, 255, 0.603);
+
+  }
+.line{
+      fill: none;
+      stroke: rgba(0, 162, 255, 0.603);
+}
+  .overlay {
+      fill: none;
+      pointer-events: all;
+  }
+
+  .axis path {
+      display: none;
+  }
+
+  .axis line {
+      stroke-opacity: 0.3;
+      shape-rendering: crispEdges;
+  }
+
+  .view {
+      fill: none;
+      stroke: none;
+  }
+.hidden{
+    display: none;
+}
+
+.form{
+
+}
+.filename{
+    font-style: italic;
+    color: #81868A;
+    font-size: small;
+    
+}

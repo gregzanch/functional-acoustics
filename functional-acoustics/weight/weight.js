@@ -2,6 +2,10 @@
 
 import WeightTranslation from '../verbose/translations/weight-translation';
 
+const pow2 = (x) => Math.pow(x, 2);
+const pow3 = (x) => Math.pow(x, 3);
+const sqrt = Math.sqrt;
+
 const Weight = {
     R_a: (f) => {
         let f2 = f * f;
@@ -14,31 +18,27 @@ const Weight = {
         else if (typeof f == "object")
             return f.map(freq=>20 * Math.log10(Weight.R_a(freq)) + 2.00);
     },
-    R_b: (f) => {
-        let f3 = f * f * f;
-        let f2 = f * f;
-        return (148693636 * f3) / ((f2 + 424.36) * Math.sqrt(f2 + 158 * 158) * (f2 * 148693636));
-    },
+
+    R_b: (f) => (pow2(12194) * pow3(f)) / ((pow2(f) + pow2(20.6)) * Math.sqrt(pow2(f) + pow2(158)) * (pow2(f) + pow2(12194))),
     B: (f) => {
         if (typeof f == "number")
             return 20 * Math.log10(Weight.R_b(f)) + 0.17;
         else if (typeof f == "object")
             return f.map(freq => 20 * Math.log10(Weight.R_b(freq)) + 0.17);
     },
-    R_c: (f) => {
-        let f2 = f * f;
-        return (148693636 * f2) / ((f2 + 424.36) * (f2 * 148693636));
-    },
+
+    R_c: (f) => (pow2(12194) * pow2(f)) / ((pow2(f) + pow2(20.6)) * (pow2(f) + pow2(12194))),
     C: (f) => {
         if (typeof f == "number")
             return 20 * Math.log10(Weight.R_c(f)) + 0.06;
         else if (typeof f == "object")
             return f.map(freq => 20 * Math.log10(Weight.R_c(freq)) + 0.06);
     },
-    
+
     h: (f) => (Math.pow((1037918.48 - f * f), 2) + 1080768.16 * f * f) / (Math.pow((9837328 - f * f), 2) + 11723776 * f * f),
     R_d: (f) => ((f) / (6.8966888496476e-5)) * Math.sqrt(Weight.h(f) / ((f * f + 79919.29) * (f * f + 1345600))),
-    D: (f) => 20*Math.log10(Weight.R_d(f)),
+    D: (f) => 20 * Math.log10(Weight.R_d(f)),
+    
     convert: (freq_db_pairs) => {
         return new _WeightConverter(freq_db_pairs);
     }

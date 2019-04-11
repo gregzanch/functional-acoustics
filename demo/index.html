@@ -5,37 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Demo</title>
-    <style>
-        .line {
-            fill: none;
-            stroke: rgba(0, 162, 255, 0.603);
-
-        }
-
-        .overlay {
-            fill: none;
-            pointer-events: all;
-        }
-        .axis path {
-            display: none;
-        }
-
-        .axis line {
-            stroke-opacity: 0.3;
-            shape-rendering: crispEdges;
-        }
-
-        .view {
-            fill: none;
-            stroke: none;
-        }
-
-    </style>
+    <link rel="stylesheet" href="style.css">
+    <script>window.help=0x68656c70</script>
+    <script src="https://unpkg.com/mathjs@5.8.0/dist/math.min.js"></script>
 </head>
 <body>
-    <svg width="960" height="500">
-
-    </svg>
-    <script type="module" src="./main.js"></script>
+    <div>
+    <input id="fileinput" type="file">
+    </div>
+    <!-- <script type="module" src="./audiotools.js"></script> -->
+    <svg width="960" height="500"></svg>    
+    <script type='module' src='./script.js'></script>
 </body>
 </html>
