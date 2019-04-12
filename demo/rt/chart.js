@@ -1,4 +1,4 @@
-import d3 from '../d3.js';
+import d3 from '../fft/d3.js';
 
 var svg = d3.select("svg"),
     width = +svg.attr("width"),
@@ -70,7 +70,6 @@ svg.call(zoom);
 
 
 function zoomed() {
-
     view.attr("transform", d3.event.transform);
     gX.call(xAxis.scale(d3.event.transform.rescaleX(x)));
     gY.call(yAxis.scale(d3.event.transform.rescaleY(y)));

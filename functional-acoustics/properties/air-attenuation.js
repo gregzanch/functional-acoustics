@@ -1,3 +1,6 @@
+
+import units from '../units/units';
+
 /** Calculates air attenuation
  * ANSI Standard S1-26:1995, or ISO 9613-1:1996. 
  * @see https://www.mne.psu.edu/lamancusa/me458/10_osp.pdf
@@ -22,7 +25,7 @@ export function airAttenuation({
     attenuationUnits = attenuationUnits || "ft";
     temperature = temperature || 68;
     temperatureUnits = temperatureUnits || "F";
-    temperature = AC.units.convert(temperature).from(temperatureUnits).to('K');
+    temperature = units.convert(temperature).from(temperatureUnits).to('K');
 
     const _airAttenuation = (f) => {
         let C_humid = 4.6151 - 6.8346 * Math.pow((273.15 / temperature), 1.261);

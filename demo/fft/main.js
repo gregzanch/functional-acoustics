@@ -1,5 +1,5 @@
 import d3 from './d3.js';
-import AC from './functional-acoustics.js';
+import AC from '../functional-acoustics.js';
 import tups from './rt60tups.js';
 
 

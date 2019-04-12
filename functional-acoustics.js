@@ -146,7 +146,6 @@
                 Lp = [Lp];
             return Lp.map(lp => lp - 10 * Math.log10(Ao / Ar));
         }
-        
     };
 
     var octave_bands = [{
@@ -372,6 +371,25 @@
             "Upper": 22390
         }
     ];
+
+    function OctaveBands(start, end) {
+        return octave_bands.map(x => x.Center).filter(x => x >= Number(start||0) && x <= Number(end||20000));
+    }
+
+    function ThirdOctaveBands(start, end) {
+        return third_octave_bands.map(x => x.Center).filter(x => x >= Number(start||0) && x <= Number(end||20000));
+    }
+
+    function Flower(k, fc) {
+        if (typeof fc === "number")
+            fc = [fc];
+        return fc.map(f => f / Math.pow(2, 1 / (2 * k)));
+    }
+    function Fupper(k, fc) {
+        if (typeof fc === "number")
+            fc = [fc];
+        return fc.map(f => f * Math.pow(2, 1 / (2 * k)));
+    }
 
     const Bands = {
         Octave: {
@@ -5192,8 +5210,12 @@
         return Je / (Ve * (f || 0.83));
     }
 
-    const hann = (n, N) => Math.pow(Math.sin(Math.PI * n / (N-1)), 2);
+    const hann = (n, N) => Math.pow(Math.sin(Math.PI * n / (N - 1)), 2);
 
+    /** Hann window
+     * @param  {number} N Length of the window
+     * @returns {number[]} a Hann window of length N
+     */
     function Hann(N) {
         return Object.keys(Array(N).fill(0)).map(x => hann(Number(x), N));
     }
@@ -5579,7 +5601,7 @@
         attenuationUnits = attenuationUnits || "ft";
         temperature = temperature || 68;
         temperatureUnits = temperatureUnits || "F";
-        temperature = AC.units.convert(temperature).from(temperatureUnits).to('K');
+        temperature = units.convert(temperature).from(temperatureUnits).to('K');
 
         const _airAttenuation = (f) => {
             let C_humid = 4.6151 - 6.8346 * Math.pow((273.15 / temperature), 1.261);
@@ -5880,6 +5902,10 @@
       Weight,
       Conversion,
       Bands,
+      OctaveBands,
+      ThirdOctaveBands,
+      Flower,
+      Fupper,
       dBsum,
       Transmission,
       Properties,

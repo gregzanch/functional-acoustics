@@ -1,4 +1,4 @@
-const AC = require('../functional-acoustics');
+const AC = require('./functional-acousticsics');
 const fs = require('fs');
 
 

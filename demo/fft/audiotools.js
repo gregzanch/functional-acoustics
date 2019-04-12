@@ -1,4 +1,4 @@
-import AC from './functional-acoustics.js';
+import AC from '../functional-acoustics.js/index.js';
 window.AC = AC;
 
 const input = document.createElement('input');

@@ -1,4 +1,4 @@
-import AC from './functional-acoustics.js';
+import AC from '../functional-acoustics.js';
 import { getSampleData } from './audiofileutils.js';
 import d3 from './d3.js';
 

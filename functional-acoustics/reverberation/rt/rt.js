@@ -1,4 +1,4 @@
-import Bands from '../../bands/bands';
+import { Bands, OctaveBands, ThirdOctaveBands, Flower, Fupper } from '../../bands/bands';
 import clamp from '../../util/clamp';
 import { Surface } from '../../types/surface';
 import { airAttenuation } from '../../properties/air-attenuation';

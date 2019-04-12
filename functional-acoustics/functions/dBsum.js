@@ -4,7 +4,7 @@
  * @param {Number} decimalPrecision - Number of decimals places to round the output to
  * @returns {Number|Number[]} A number or an (n-1)-dimmensional array of numbers
  */
-const dBsum = (dBs, decimalPrecision = 1) => {
+export const dBsum = (dBs, decimalPrecision = 1) => {
     let _sum_;
     let precision = '1'
     for (let i = 0; i < decimalPrecision; i++){
@@ -37,4 +37,15 @@ const dBsum = (dBs, decimalPrecision = 1) => {
     }
 }
 
-export default dBsum;
+/** 
+ * Returns the dB sum of the array passed in
+ * @param  {Number[]} dBs - An array of numbers
+ */
+export function dBSum(values) {
+    if (values instanceof Array) {
+        return 10 * Math.log10(dBs.map(x => Math.pow(10, Number(x) / 10)).reduce((acc, a) => acc + a));
+    } else {
+        return null;
+    }
+}
+

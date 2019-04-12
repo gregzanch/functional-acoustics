@@ -64,6 +64,9 @@ function openFromSave(res) {
         room.graph(`rgba(${Math.random()*150},${Math.random()*150},${Math.random()*150},0.25)`);
     })
 }
+
+
+
 document.getElementById('save').addEventListener('click', e => {
       var text = JSON.stringify(window.room);
     var filename = document.getElementById('filename').innerText !== "~" ? document.getElementById('filename').innerText : "treatment-layout.json";

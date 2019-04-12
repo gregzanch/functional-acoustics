@@ -1,4 +1,4 @@
-import Bands from '../bands/bands';
+import { Bands, OctaveBands, ThirdOctaveBands, Flower, Fupper } from '../bands/bands';
 import Properties from '../properties/properties';
 import std from '../util/std';
 import sort from '../util/sort';

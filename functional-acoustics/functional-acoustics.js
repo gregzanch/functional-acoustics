@@ -1,7 +1,7 @@
 import Weight from './weight/weight'
 import Conversion from './conversion/conversion'
-import Bands from './bands/bands'
-import dBsum from './functions/dBsum'
+import { Bands, OctaveBands, ThirdOctaveBands, Flower, Fupper } from './bands/bands';
+import { dBsum } from './functions/dBsum'
 import Transmission from './transmission/transmission';
 import Properties from './properties/properties';
 import RoomModes from './modal/room-modes'
@@ -28,10 +28,15 @@ import { Vector } from './types/vector';
 import { airAttenuation } from './properties/air-attenuation';
 import { RT, RTOptimizer } from './reverberation/rt/rt';
 
+
 export default {
   Weight,
   Conversion,
   Bands,
+  OctaveBands,
+  ThirdOctaveBands,
+  Flower,
+  Fupper,
   dBsum,
   Transmission,
   Properties,
