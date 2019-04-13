@@ -17,33 +17,60 @@ const WeightTranslation = (str) => {
     }
 };
 
-/* https://en.wikipedia.org/wiki/A-weighting#Function_realisation_of_some_common_weightings */
+function R_a(f) {
+  let f2 = f * f;
+  let f4 = f2 * f2;
+  return (
+    (148693636 * f4) /
+    ((f2 + 424.36) *
+      Math.sqrt((f2 + 11599.29) * (f2 + 544496.41)) *
+      (f2 + 148693636))
+  );
+}
+/** Calculates the A-weight values for the specified frequency/frequencies
+ * @function A
+ * @param {number|number[]} f frequency/frequencies
+ */
+function A(f) {
+    if (typeof f === "number") {
+        return 20 * Math.log10(R_a(f)) + 2.0;
+    }
+    else if (f instanceof Array) {
+        return f.map(function (freq) {
+            return 20 * Math.log10(R_a(freq)) + 2.0;
+        })
+    }
+}
 
-const pow2 = (x) => Math.pow(x, 2);
-const pow3 = (x) => Math.pow(x, 3);
+const pow2 = function pow2(x) {
+    return Math.pow(x, 2);
+};
+const pow3 = function pow3(x) {
+    return Math.pow(x, 3);
+};
+function R_b(f) {
+  return pow2(12194) * pow3(f) / ((pow2(f) + pow2(20.6)) * Math.sqrt(pow2(f) + pow2(158)) * (pow2(f) + pow2(12194)))
+}
+/** Calculates the B-weight values for the specified frequency/frequencies
+ * @function B
+ * @param {number|number[]} f frequency/frequencies
+ */
+function B(f) {
+    if (typeof f == "number")
+        return 20 * Math.log10(R_b(f)) + 0.17;
+    else if (typeof f == "object")
+        return f.map(function (freq) {
+            return 20 * Math.log10(R_b(freq)) + 0.17;
+        })
+}
+
+/* https://en.wikipedia.org/wiki/A-weighting#Function_realisation_of_some_common_weightings */
+const pow2$1 = (x) => Math.pow(x, 2);
 
 const Weight = {
-    R_a: (f) => {
-        let f2 = f * f;
-        let f4 = f2 * f2;
-        return (148693636 * f4) / ((f2 + 424.36) * Math.sqrt((f2 + 11599.29) * (f2 + 544496.41)) * (f2 + 148693636))
-    },
-    A: (f) => {
-        if(typeof f == "number")
-            return 20 * Math.log10(Weight.R_a(f)) + 2.00;
-        else if (typeof f == "object")
-            return f.map(freq=>20 * Math.log10(Weight.R_a(freq)) + 2.00);
-    },
-
-    R_b: (f) => (pow2(12194) * pow3(f)) / ((pow2(f) + pow2(20.6)) * Math.sqrt(pow2(f) + pow2(158)) * (pow2(f) + pow2(12194))),
-    B: (f) => {
-        if (typeof f == "number")
-            return 20 * Math.log10(Weight.R_b(f)) + 0.17;
-        else if (typeof f == "object")
-            return f.map(freq => 20 * Math.log10(Weight.R_b(freq)) + 0.17);
-    },
-
-    R_c: (f) => (pow2(12194) * pow2(f)) / ((pow2(f) + pow2(20.6)) * (pow2(f) + pow2(12194))),
+    A,
+    B,
+    R_c: (f) => (pow2$1(12194) * pow2$1(f)) / ((pow2$1(f) + pow2$1(20.6)) * (pow2$1(f) + pow2$1(12194))),
     C: (f) => {
         if (typeof f == "number")
             return 20 * Math.log10(Weight.R_c(f)) + 0.06;
@@ -366,25 +393,44 @@ var third_octave_bands = [{
     }
 ];
 
+/** Returns the nominal octave band frequencies between a given range (inclusive)
+ * @function OctaveBands
+ * @param {number} [start] start frequency
+ * @param {number} [end] end frequency
+ */
 function OctaveBands(start, end) {
     return octave_bands.map(x => x.Center).filter(x => x >= Number(start||0) && x <= Number(end||20000));
 }
 
+/** Returns the nominal third octave band frequencies between a given range (inclusive)
+ * @function ThirdOctaveBands
+ * @param {number} [start] start frequency
+ * @param {number} [end] end frequency
+ */
 function ThirdOctaveBands(start, end) {
     return third_octave_bands.map(x => x.Center).filter(x => x >= Number(start||0) && x <= Number(end||20000));
 }
 
+/** Returns the lower band limit of a frequency band
+ * @function Flower
+ * @param {*} k inverse fraction (i.e. third = 3, sixth = 6, etc.)
+ * @param {*} fc center frequency
+ */
 function Flower(k, fc) {
     if (typeof fc === "number")
         fc = [fc];
     return fc.map(f => f / Math.pow(2, 1 / (2 * k)));
 }
+/** Returns the upper band limit of a frequency band
+ * @function Fupper
+ * @param {*} k inverse fraction (i.e. third = 3, sixth = 6, etc.)
+ * @param {*} fc center frequency
+ */
 function Fupper(k, fc) {
     if (typeof fc === "number")
         fc = [fc];
     return fc.map(f => f * Math.pow(2, 1 / (2 * k)));
 }
-
 const Bands = {
     Octave: {
         Nominal: octave_bands.map(x=>x.Center),
@@ -4946,59 +4992,21 @@ const IFFT = real => imag => {
 
 const RMS = (samples) => Math.sqrt(samples.map(p => p * p).reduce((a, b) => a + b) / samples.length);
 
-const Energy = {
+/** Energy Density Calculation
+ * Architectural Acoustics pg. 64 'Energy Density' Marshal Long, Second Edition
+ * @function EnergyDensity
+ * @param  {Number} E Energy Contained in a Sound Wave
+ * @param  {Number} S Measurement Area
+ * @param  {Number} c Speed of Sound
+ * @param  {Number} t Time
+ * @param  {Number} W Power
+ * @param  {Number} I Intensity
+ * @param  {Number} p Pressure
+ * @param  {Number} rho Bulk Density of Medium
+ */
 
-    /** Energy Density Calculation
-     * Architectural Acoustics pg. 64 'Energy Density' Marshal Long, Second Edition
-     * 
-     * @param  {Number} E Energy Contained in a Sound Wave
-     * @param  {Number} S Measurement Area
-     * @param  {Number} c Speed of Sound
-     * @param  {Number} t Time
-     * @param  {Number} W Power
-     * @param  {Number} I Intensity
-     * @param  {Number} p Pressure
-     * @param  {Number} rho Bulk Density of Medium
-     */
-    Density: ({ E, S, c, t, W, I, p, rho, help } = {}) => {
-        if (E && S && c && t) {
-            console.log(1);
-            return E / (S * c * t);
-        }
-        else if (W && S && c) {
-            console.log(2);
-            return W / (S * c);
-        }
-        else if (I && c) {
-            console.log(3);
-            return (I / c);
-        }
-        else if (p && rho && c) {
-            console.log(4);
-            return (p * p) / (rho * c * c);
-        }
-        else if (help) {
-            console.log(
-                `/** Energy Density Calculation
-                 * Architectural Acoustics pg. 64 'Energy Density' Marshal Long, Second Edition
-                 * 
-                 * @param  {Number} E Energy Contained in a Sound Wave
-                 * @param  {Number} S Measurement Area
-                 * @param  {Number} c Speed of Sound
-                 * @param  {Number} t Time
-                 * @param  {Number} W Power
-                 * @param  {Number} I Intensity
-                 * @param  {Number} p Pressure
-                 * @param  {Number} rho Bulk Density of Medium
-                 */`
-            );
-        }
-        else throw 'Not enough input parameters given';
-    }
-};
-
-/**
- * @function p2dB Converts Sound Pressure in (Pa) to Sound Pressure Level in (dB)
+/** Converts Sound Pressure in (Pa) to Sound Pressure Level in (dB)
+ * @function p2dB
  * @param  {Number|Number[]} p Sound Pressure
  * @param  {String} [units] Units for the result
  */
@@ -5025,8 +5033,8 @@ function p2dB({ p, units } = {}) {
 }
 
 
-/**
- * @function dB2p Converts Sound Pressure Level(Lp) in dB to Sound Pressure in (Pa)
+/** Converts Sound Pressure Level(Lp) in dB to Sound Pressure in (Pa)
+ * @function dB2p
  * @param  {Number|Number[]} dB Sound Pressure Level
  * @param  {String} [units] Units for the result
  */
@@ -5052,8 +5060,8 @@ function dB2p({ dB, units } = {}) {
     }
 }
 
-/**
- * @function I2dB Converts Sound Intensity in (W) to Sound Intensity Level in (dB)
+/** Converts Sound Intensity in (W) to Sound Intensity Level in (dB)
+ * @function I2dB
  * @param  {Number|Number[]} I Sound Intensity 
  * @param  {String} [units] Units for the result 
  */
@@ -5080,8 +5088,8 @@ function I2dB({ I, units } = {}) {
 }
 
 
-/**
- * @function dB2I Converts Sound Intensity Level (LI) in dB to Sound Power in (W)
+/** Converts Sound Intensity Level (LI) in dB to Sound Power in (W)
+ * @function dB2I
  * @param  {Number|Number[]} dB Sound Intensity Level
  * @param  {String} [units] Units for the result
  */
@@ -5107,8 +5115,8 @@ function dB2I({ dB, units } = {}) {
     }
 }
 
-/**
- * @function W2dB Converts Sound Power in (W) to Sound Power Level(Lw) in dB
+/** Converts Sound Power in (W) to Sound Power Level(Lw) in dB
+ * @function W2dB
  * @param  {Number|Number[]} W Sound Power
  * @param  {String} [units] Units for the result
  */
@@ -5134,8 +5142,8 @@ function W2dB({ W, units } = {}) {
     }
 }
 
-/**
- * @function dB2W Converts Sound Power Level (Lw) in dB to Sound Power in (W)
+/** Converts Sound Power Level (Lw) in dB to Sound Power in (W)
+ * @function dB2W
  * @param  {Number|Number[]} dB Sound Power Level
  * @param  {String} [units] Units for the result
  */
@@ -5185,6 +5193,7 @@ function SoundPowerScan({ frequency, surfaceData } = {}) {
 
 /** Calcualtes the electrical power required by an amplifier
  * Marshal Long pg. 689
+ * @function PowerDemand
  * @param  {Number} channels - number of amplifier channels (assuming 2 channels per amplifier)
  * @param  {Number} J - rated amplifier output power for one channel in Watts
  * @param  {Number} duty - duty cycle
@@ -5196,6 +5205,7 @@ function PowerDemand({ channels, J, duty, efficieny, Jq }) {
 }
 
 /** Calculates the electrical current from the AC Main (A)
+ * @function CurrentDemand
  * @param  {Number} Je - Power Demand
  * @param  {Number} Ve - electrical voltage from the AC Main (V)
  * @param  {Number} f - Power factor (defaults to 0.83)
@@ -5228,22 +5238,14 @@ const readTextFile = ({ element, loaded, error } = {}) => {
  */
 const sum = arr => arr.reduce((a, b) => a + b);
 
-/**
- * From https://stackoverflow.com/questions/1406029/how-to-calculate-the-volume-of-a-3d-mesh-object-the-surface-of-which-is-made-up
- * 
- * Read this paper http://chenlab.ece.cornell.edu/Publication/Cha/icip01_Cha.pdf
- * The trick is to calculate the signed volume of a tetrahedron -
- * based on your triangle and topped off at the origin.
- * The sign of the volume comes from whether your triangle is 
- * pointing in the direction of the origin. (The normal 
- * of the triangle is itself dependent upon the order of your 
- * vertices, which is why you don 't see it explicitly referenced below.)
- * 
- * @function triangleVolume - Calculates the signed volume of a triangle for 3D mesh calc
+/** Calculates the signed volume of a triangle for 3D mesh calc
+ * @function triangleVolume
  * @param  {Object|Vector} p1 - Vector p1 containing components x,y,z;
  * @param  {Object|Vector} p2 - Vector p1 containing components x,y,z;
  * @param  {Object|Vector} p3 - Vector p1 containing components x,y,z;
- * @returns {Number} - Returns signed volume of a triangle
+ * @returns {Number} Returns signed volume of a triangle
+ * @see https://stackoverflow.com/questions/1406029/how-to-calculate-the-volume-of-a-3d-mesh-object-the-surface-of-which-is-made-up
+ * @see http://chenlab.ece.cornell.edu/Publication/Cha/icip01_Cha.pdf
  */
 const triangleVolume = (p1, p2, p3) => {
     const v321 = p3.x * p2.y * p1.z;
@@ -5254,8 +5256,8 @@ const triangleVolume = (p1, p2, p3) => {
     const v123 = p1.x * p2.y * p3.z;
     return (1.0 / 6.0 ) * (-v321 + v231 + v312 - v132 - v213 + v123);
 };
-/**
- * @function meshVolume - Calculates the volume of a mesh of triangles
+/** Calculates the volume of a mesh of triangles
+ * @function meshVolume
  * @param  {Object[]} mesh - Array of triangles of the form [ {x,y,z}, {x,y,z}, {x,y,z} ]
  */
 const meshVolume = (triangles) => {
@@ -5725,11 +5727,9 @@ class RT {
     }
 
 }
-
 class RTOptimizer extends RT {
     constructor(props) {
         super(props);
-
     }
     setStepSize(stepSize) {
         this.stepSize = stepSize;
@@ -5893,6 +5893,8 @@ class RTOptimizer extends RT {
 }
 
 var functionalAcoustics = {
+  A,
+  B,
   Weight,
   Conversion,
   Bands,

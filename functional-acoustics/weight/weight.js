@@ -1,32 +1,15 @@
 /* https://en.wikipedia.org/wiki/A-weighting#Function_realisation_of_some_common_weightings */
 
 import WeightTranslation from '../verbose/translations/weight-translation';
-
+import A from './A';
+import B from './B'
 const pow2 = (x) => Math.pow(x, 2);
 const pow3 = (x) => Math.pow(x, 3);
 const sqrt = Math.sqrt;
 
 const Weight = {
-    R_a: (f) => {
-        let f2 = f * f;
-        let f4 = f2 * f2;
-        return (148693636 * f4) / ((f2 + 424.36) * Math.sqrt((f2 + 11599.29) * (f2 + 544496.41)) * (f2 + 148693636))
-    },
-    A: (f) => {
-        if(typeof f == "number")
-            return 20 * Math.log10(Weight.R_a(f)) + 2.00;
-        else if (typeof f == "object")
-            return f.map(freq=>20 * Math.log10(Weight.R_a(freq)) + 2.00);
-    },
-
-    R_b: (f) => (pow2(12194) * pow3(f)) / ((pow2(f) + pow2(20.6)) * Math.sqrt(pow2(f) + pow2(158)) * (pow2(f) + pow2(12194))),
-    B: (f) => {
-        if (typeof f == "number")
-            return 20 * Math.log10(Weight.R_b(f)) + 0.17;
-        else if (typeof f == "object")
-            return f.map(freq => 20 * Math.log10(Weight.R_b(freq)) + 0.17);
-    },
-
+    A,
+    B,
     R_c: (f) => (pow2(12194) * pow2(f)) / ((pow2(f) + pow2(20.6)) * (pow2(f) + pow2(12194))),
     C: (f) => {
         if (typeof f == "number")

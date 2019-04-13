@@ -1,8 +1,4 @@
-(function (global, factory) {
-    typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
-    typeof define === 'function' && define.amd ? define(factory) :
-    (global = global || self, global.AC = factory());
-}(this, function () { 'use strict';
+define(function () { 'use strict';
 
     const WeightTranslation = (str) => {
         const z = ["unweighted", 'notweighted', "flat", "none", "not", "notweighted", 'noweighting', 'uncorrected'];
@@ -5948,4 +5944,4 @@
 
     return functionalAcoustics;
 
-}));
+});

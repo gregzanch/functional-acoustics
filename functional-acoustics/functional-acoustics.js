@@ -1,4 +1,6 @@
-import Weight from './weight/weight'
+import Weight from './weight/weight';
+import A from './weight/A';
+import B from './weight/B';
 import Conversion from './conversion/conversion'
 import { Bands, OctaveBands, ThirdOctaveBands, Flower, Fupper } from './bands/bands';
 import { dBsum } from './functions/dBsum'
@@ -16,7 +18,7 @@ import Signal from './signal/signal';
 import { Surface } from './types/surface';
 import { FFT, IFFT } from './fft/_fft';
 import RMS from './util/rms';
-import Energy from './energy/energy';
+import EnergyDensity from './energy/energydensity';
 import { p2dB, dB2p, I2dB, dB2I, W2dB, dB2W } from './db/2dB2';
 import { SoundPowerScan } from './measurement/soundpowerscan';
 import { round } from './util/round';
@@ -30,6 +32,8 @@ import { RT, RTOptimizer } from './reverberation/rt/rt';
 
 
 export default {
+  A,
+  B,
   Weight,
   Conversion,
   Bands,

@@ -2,8 +2,8 @@ import convert from '../units/convert';
 import { pref, Wref, Iref } from '../constants/constants';
 
 
-/**
- * @function p2dB Converts Sound Pressure in (Pa) to Sound Pressure Level in (dB)
+/** Converts Sound Pressure in (Pa) to Sound Pressure Level in (dB)
+ * @function p2dB
  * @param  {Number|Number[]} p Sound Pressure
  * @param  {String} [units] Units for the result
  */
@@ -30,8 +30,8 @@ export function p2dB({ p, units } = {}) {
 }
 
 
-/**
- * @function dB2p Converts Sound Pressure Level(Lp) in dB to Sound Pressure in (Pa)
+/** Converts Sound Pressure Level(Lp) in dB to Sound Pressure in (Pa)
+ * @function dB2p
  * @param  {Number|Number[]} dB Sound Pressure Level
  * @param  {String} [units] Units for the result
  */
@@ -57,8 +57,8 @@ export function dB2p({ dB, units } = {}) {
     }
 }
 
-/**
- * @function I2dB Converts Sound Intensity in (W) to Sound Intensity Level in (dB)
+/** Converts Sound Intensity in (W) to Sound Intensity Level in (dB)
+ * @function I2dB
  * @param  {Number|Number[]} I Sound Intensity 
  * @param  {String} [units] Units for the result 
  */
@@ -85,8 +85,8 @@ export function I2dB({ I, units } = {}) {
 }
 
 
-/**
- * @function dB2I Converts Sound Intensity Level (LI) in dB to Sound Power in (W)
+/** Converts Sound Intensity Level (LI) in dB to Sound Power in (W)
+ * @function dB2I
  * @param  {Number|Number[]} dB Sound Intensity Level
  * @param  {String} [units] Units for the result
  */
@@ -112,8 +112,8 @@ export function dB2I({ dB, units } = {}) {
     }
 }
 
-/**
- * @function W2dB Converts Sound Power in (W) to Sound Power Level(Lw) in dB
+/** Converts Sound Power in (W) to Sound Power Level(Lw) in dB
+ * @function W2dB
  * @param  {Number|Number[]} W Sound Power
  * @param  {String} [units] Units for the result
  */
@@ -139,8 +139,8 @@ export function W2dB({ W, units } = {}) {
     }
 }
 
-/**
- * @function dB2W Converts Sound Power Level (Lw) in dB to Sound Power in (W)
+/** Converts Sound Power Level (Lw) in dB to Sound Power in (W)
+ * @function dB2W
  * @param  {Number|Number[]} dB Sound Power Level
  * @param  {String} [units] Units for the result
  */

@@ -2,6 +2,7 @@ import { Bands, OctaveBands, ThirdOctaveBands, Flower, Fupper } from '../../band
 import clamp from '../../util/clamp';
 import { Surface } from '../../types/surface';
 import { airAttenuation } from '../../properties/air-attenuation';
+
 export class RT {
     constructor({
         surfaces,
@@ -94,12 +95,11 @@ export class RT {
         }
     }
 
-}
+};
 
 export class RTOptimizer extends RT {
     constructor(props) {
         super(props);
-
     }
     setStepSize(stepSize) {
         this.stepSize = stepSize;
