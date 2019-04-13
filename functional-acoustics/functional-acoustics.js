@@ -60,7 +60,7 @@ export default {
   units,
   Complex,
   Signal,
-  Energy,
+  EnergyDensity,
   p2dB,
   dB2p,
   I2dB,

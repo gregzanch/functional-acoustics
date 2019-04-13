@@ -1,6 +1,6 @@
 {
   "name": "functional-acoustics",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "A javascript library that provides useful functionality for acousticians.",
   "main": "functional-acoustics.js",
   "scripts": {
@@ -11,7 +11,11 @@
     "rollup:acoustics": "rollup -c rollup/rollup.config.dist.js",
     "rollup:demo": "rollup -c rollup/rollup.config.demo.js",
     "jsdoc": "jsdoc functional-acoustics.js",
-    "tsd-jsdoc": " jsdoc -t node_modules/tsd-jsdoc/dist -r ./functional-acoustics/"
+    "tsd-jsdoc": " jsdoc -t node_modules/tsd-jsdoc/dist -r ./functional-acoustics/",
+    "git:add": "git add .",
+    "git:commit": "git commit -m \"updates\"",
+    "git:push": "git push -u origin master",
+    "publish": "npm publish"
   },
   "keywords": [
     "acoustics",

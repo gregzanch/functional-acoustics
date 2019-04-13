@@ -5010,6 +5010,17 @@
      * @param  {Number} p Pressure
      * @param  {Number} rho Bulk Density of Medium
      */
+    function EnergyDensity({ E, S, c, t, W, I, p, rho, help } = {}) {
+      if (E && S && c && t) {
+        return E / (S * c * t);
+      } else if (W && S && c) {
+        return W / (S * c);
+      } else if (I && c) {
+        return I / c;
+      } else if (p && rho && c) {
+        return (p * p) / (rho * c * c);
+      } else throw "Not enough input parameters given";
+    }
 
     /** Converts Sound Pressure in (Pa) to Sound Pressure Level in (dB)
      * @function p2dB
@@ -5927,7 +5938,7 @@
       units,
       Complex,
       Signal,
-      Energy,
+      EnergyDensity,
       p2dB,
       dB2p,
       I2dB,
