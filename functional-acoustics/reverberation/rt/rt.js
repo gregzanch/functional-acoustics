@@ -101,6 +101,7 @@ export class RTOptimizer extends RT {
     constructor(props) {
         super(props);
     }
+    
     setStepSize(stepSize) {
         this.stepSize = stepSize;
         return this;
@@ -201,11 +202,11 @@ export class RTOptimizer extends RT {
                     }
                 }
             }
-            console.log(this.surfaces[1].modifiedSurfaceArea, this.surfaces[7].modifiedSurfaceArea);
+         
 
 
         });
-        console.log(this.surfaces);
+       
     }
     optimizePrime(N) {
         Array(N).fill(0).forEach(x => {

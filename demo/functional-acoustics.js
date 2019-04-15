@@ -5228,6 +5228,7 @@ function CurrentDemand({ Je, Ve, f }) {
 const hann = (n, N) => Math.pow(Math.sin(Math.PI * n / (N - 1)), 2);
 
 /** Hann window
+ * @function Hann
  * @param  {number} N Length of the window
  * @returns {number[]} a Hann window of length N
  */
@@ -5742,6 +5743,7 @@ class RTOptimizer extends RT {
     constructor(props) {
         super(props);
     }
+    
     setStepSize(stepSize) {
         this.stepSize = stepSize;
         return this;
@@ -5841,11 +5843,11 @@ class RTOptimizer extends RT {
                     }
                 }
             }
-            console.log(this.surfaces[1].modifiedSurfaceArea, this.surfaces[7].modifiedSurfaceArea);
+         
 
 
         });
-        console.log(this.surfaces);
+       
     }
     optimizePrime(N) {
         Array(N).fill(0).forEach(x => {
