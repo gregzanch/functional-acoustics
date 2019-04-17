@@ -29,7 +29,7 @@ import { ParseOBJ, ParseOBJ_dom } from './parsers/obj.parser';
 import { Vector } from './types/vector';
 import { airAttenuation } from './properties/air-attenuation';
 import { RT, RTOptimizer } from './reverberation/rt/rt';
-
+import filters from './electrical/filters';
 
 export default {
   A,
@@ -76,5 +76,6 @@ export default {
   ParseOBJ,
   ParseOBJ_dom,
   Vector,
-  airAttenuation
+  airAttenuation,
+  filters
 };

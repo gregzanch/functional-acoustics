@@ -4924,39 +4924,17 @@ function newArrayOfZeros(n) {
     return result;
 }
 
-const FFT = (real) => (imag) => {
-    const re = [];
-    real.forEach((v, i, a) => {
-        re.push(v);
-    });
-
-    if (!imag) {
-        const im = [];
-        real.forEach((v, i, a) => {
-            im.push(0);
-        });
-        const transformdata = {
-            real: re,
-            imag: im
-        }; 
-        transform(transformdata.real, transformdata.imag);
-        return transformdata;
+function FFT(signal) {
+    let _signal = Array.from(signal);
+    if (_signal instanceof Array) {
+      if (_signal[0] instanceof Array) {
+        _signal.map(x => transform(x, newArrayOfZeros(x.length)));
+      } else {
+        transform(_signal, newArrayOfZeros(_signal.length));
+      }
     }
-    else {
-        const im = [];
-        if (imag) {
-            imag.forEach((v, i, a) => {
-                im.push(v);
-            });
-        }
-        const transformdata = {
-            real: Object.assign(real, re),
-            imag: Object.assign(real, im)
-        };
-        transform(transformdata.real, transformdata.imag);
-        return transformdata;
-    }
-};
+    return _signal;
+}
 
 const IFFT = real => imag => {
         const re = [];
@@ -5900,10 +5878,31 @@ class RTOptimizer extends RT {
             }
             // console.log(this.surfaces[1].modifiedSurfaceArea+this.surfaces[7].modifiedSurfaceArea);
         });
-        console.log(this.surfaces.map(x => x.delta).filter(x => typeof x !== "undefined"));
+        // console.log(this.surfaces.map(x => x.delta).filter(x => typeof x !== "undefined"));
 
     }
 }
+
+function seriesResonator({ f, B, L, C, R } = {}) {
+    if (f && B) {
+        const w = 2 * Math.PI * f;
+        const _C = C ? C : ({ R, L } = {}) => L ? (1 / (L * w * w)) : (R ? (2 * Math.PI * B) / (R * w * w) : undefined);
+        const _L = L ? L : ({ R, C } = {}) => R ? (R / (2 * Math.PI * B)) : (C ? 1 / (C * w * w) : undefined);
+        const _R = R ? R : ({ L, C } = {}) => L ? (2 * Math.PI * L * B) : (C ? (2 * Math.PI * B) / (C * w * w) : undefined);
+        return {
+            L: L ? L : (C ? _L({ C }) : (R ? _L({ R }) : _L)),
+            C: C ? C : (R ? _C({ R }) : (L ? _C({ L }) : _C)),
+            R: R ? R : (L ? _R({ L }) : (C ? _R({ C }) : _R))
+        }
+    }
+    else{
+        console.error('need more info');
+    }
+}
+
+var filters = {
+    seriesResonator
+};
 
 var functionalAcoustics = {
   A,
@@ -5950,7 +5949,8 @@ var functionalAcoustics = {
   ParseOBJ,
   ParseOBJ_dom,
   Vector,
-  airAttenuation
+  airAttenuation,
+  filters
 };
 
 export default functionalAcoustics;

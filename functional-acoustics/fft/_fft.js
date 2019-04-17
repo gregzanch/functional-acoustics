@@ -1,41 +1,21 @@
 import {
-    transform,
-    convolveReal,
-    inverseTransform
-} from './fft.js';
+  transform,
+  convolveReal,
+  inverseTransform,
+  newArrayOfZeros
+} from "./fft.js";
 
-export const FFT = (real) => (imag) => {
-    const re = [];
-    real.forEach((v, i, a) => {
-        re.push(v);
-    });
 
-    if (!imag) {
-        const im = [];
-        real.forEach((v, i, a) => {
-            im.push(0);
-        });
-        const transformdata = {
-            real: re,
-            imag: im
-        } 
-        transform(transformdata.real, transformdata.imag);
-        return transformdata;
+export function FFT(signal) {
+    let _signal = Array.from(signal);
+    if (_signal instanceof Array) {
+      if (_signal[0] instanceof Array) {
+        _signal.map(x => transform(x, newArrayOfZeros(x.length)));
+      } else {
+        transform(_signal, newArrayOfZeros(_signal.length));
+      }
     }
-    else {
-        const im = [];
-        if (imag) {
-            imag.forEach((v, i, a) => {
-                im.push(v);
-            })
-        }
-        const transformdata = {
-            real: Object.assign(real, re),
-            imag: Object.assign(real, im)
-        };
-        transform(transformdata.real, transformdata.imag);
-        return transformdata;
-    }
+    return _signal;
 }
 
 export const IFFT = real => imag => {

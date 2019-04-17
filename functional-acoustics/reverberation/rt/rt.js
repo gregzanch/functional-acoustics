@@ -259,7 +259,7 @@ export class RTOptimizer extends RT {
             }
             // console.log(this.surfaces[1].modifiedSurfaceArea+this.surfaces[7].modifiedSurfaceArea);
         });
-        console.log(this.surfaces.map(x => x.delta).filter(x => typeof x !== "undefined"));
+        // console.log(this.surfaces.map(x => x.delta).filter(x => typeof x !== "undefined"));
 
     }
 }

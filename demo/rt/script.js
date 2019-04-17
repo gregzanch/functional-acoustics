@@ -5,7 +5,7 @@ import { RTOptimizer } from './RT.js';
 
 window.AC = AC;
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
-
+window.roomhist = [];
 
 document.getElementById('solver').addEventListener('click', e => {
     let elm = document.getElementById(e.target.getAttribute('for'));
@@ -18,6 +18,10 @@ document.getElementById('solver').addEventListener('click', e => {
     }
     
 })
+
+const nl =(
+`
+`);
 
 const open = document.getElementById('open').addEventListener('click', e => {
     document.getElementById('fromSave').click();
@@ -61,10 +65,15 @@ function openFromSave(res) {
     console.log(room);
     document.getElementById('optimize').addEventListener('click', e => {
         room.optimizePrime(Number(document.getElementById('solverIterations').value));
-        room.graph(`rgba(${Math.random()*150},${Math.random()*150},${Math.random()*150},0.25)`);
+        room.graph(`rgba(${Math.random() * 150},${Math.random() * 150},${Math.random() * 150},0.25)`);
+        roomhist.push(room.T60);
     })
 }
 
+
+document.getElementById('savehist').addEventListener('click', e => {
+    console.log(roomhist.map(x => x.toString().split(',').join('	')).toString().split(',').join(nl));
+})
 
 
 document.getElementById('save').addEventListener('click', e => {

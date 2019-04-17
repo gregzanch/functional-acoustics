@@ -165,9 +165,10 @@ export function convolveComplex(xreal, ximag, yreal, yimag, outreal, outimag) {
         outimag[i] = ximag[i] / n;
     }
 }
-function newArrayOfZeros(n) {
+export function newArrayOfZeros(n) {
     var result = [];
     for (var i = 0; i < n; i++)
         result.push(0);
     return result;
 }
+
